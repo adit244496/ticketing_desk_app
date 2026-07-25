@@ -131,7 +131,7 @@ const SolverDashboard = ({ user, setUser }) => {
                 formData.append('user_email', user.email);
                 formData.append('message', chatInput);
                 formData.append('file', chatFile);
-                await fetch('http://localhost:5000/api/tickets/chat', {
+                await fetch('/api/tickets/chat', {
                     method: 'POST',
                     body: formData
                 });
@@ -326,7 +326,7 @@ const SolverDashboard = ({ user, setUser }) => {
                                     <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.timestamp}</td>
                                     <td style={{ padding: '10px', textAlign: 'center', border: '1px solid #27272a' }}>
                                         {t.attachment && String(t.attachment).toLowerCase() !== 'nan' ? (
-                                            <img src={String(t.attachment).startsWith('data:') ? String(t.attachment) : `http://localhost:5000/uploads/${t.attachment}`} style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #3f3f46' }} alt="Attachment" />
+                                            <img src={String(t.attachment).startsWith('data:') ? String(t.attachment) : `/uploads/${t.attachment}`} style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #3f3f46' }} alt="Attachment" />
                                         ) : <span style={{ color: '#52525b' }}>-</span>}
                                     </td>
                                     <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{t.dept_assigned}</td>
@@ -697,8 +697,8 @@ const SolverDashboard = ({ user, setUser }) => {
                                                                     <div className="chat-bubble-user" style={{ fontSize: '11px', marginBottom: '4px', fontWeight: 'bold' }}>{log.user || log.user_id || 'System'}</div>
                                                                     
                                                                     {log.attachment && String(log.attachment).toLowerCase() !== 'nan' && (
-                                                                        <div style={{ marginBottom: '8px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', maxWidth: '100%' }} onClick={() => window.open(`http://localhost:5000/uploads/${log.attachment}`, '_blank')}>
-                                                                            <img src={`http://localhost:5000/uploads/${log.attachment}`} alt="Attached" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
+                                                                        <div style={{ marginBottom: '8px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', maxWidth: '100%' }} onClick={() => window.open(`/uploads/${log.attachment}`, '_blank')}>
+                                                                            <img src={`/uploads/${log.attachment}`} alt="Attached" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
                                                                         </div>
                                                                     )}
                                                                     
@@ -758,8 +758,8 @@ const SolverDashboard = ({ user, setUser }) => {
                                                                 <div className="chat-bubble-user" style={{ fontSize: '10px', marginBottom: '4px', fontWeight: 'bold' }}>{log.user || log.user_id || 'System'}</div>
                                                                 
                                                                 {log.attachment && String(log.attachment).toLowerCase() !== 'nan' && (
-                                                                    <div style={{ marginBottom: '8px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', maxWidth: '100%' }} onClick={() => window.open(`http://localhost:5000/uploads/${log.attachment}`, '_blank')}>
-                                                                        <img src={`http://localhost:5000/uploads/${log.attachment}`} alt="Attached" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
+                                                                    <div style={{ marginBottom: '8px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', maxWidth: '100%' }} onClick={() => window.open(`/uploads/${log.attachment}`, '_blank')}>
+                                                                        <img src={`/uploads/${log.attachment}`} alt="Attached" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
                                                                     </div>
                                                                 )}
                                                                 
@@ -846,7 +846,7 @@ const SolverDashboard = ({ user, setUser }) => {
                                                 {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (() => {
                                                     const attachStr = String(selectedTicket.attachment);
                                                     const isImage = attachStr.startsWith('data:image/') || attachStr.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-                                                    const fileUrl = attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`;
+                                                    const fileUrl = attachStr.startsWith('data:') ? attachStr : `/uploads/${attachStr}`;
 
                                                     if (isImage) {
                                                         return (
@@ -881,7 +881,7 @@ const SolverDashboard = ({ user, setUser }) => {
                                                     {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (() => {
                                                         const attachStr = String(selectedTicket.attachment);
                                                         const isImage = attachStr.startsWith('data:image/') || attachStr.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-                                                        const fileUrl = attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`;
+                                                        const fileUrl = attachStr.startsWith('data:') ? attachStr : `/uploads/${attachStr}`;
 
                                                         if (!isImage) {
                                                             return (
@@ -954,10 +954,10 @@ const SolverDashboard = ({ user, setUser }) => {
                                                     <div style={{ width: '100px', flexShrink: 0 }}>
                                                         <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Attached File:</strong>
                                                         <img 
-                                                            src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `http://localhost:5000/uploads/${selectedTicket.attachment}`}
+                                                            src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `/uploads/${selectedTicket.attachment}`}
                                                             onClick={() => {
                                                                 const attachStr = String(selectedTicket.attachment);
-                                                                window.open(attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`, '_blank');
+                                                                window.open(attachStr.startsWith('data:') ? attachStr : `/uploads/${attachStr}`, '_blank');
                                                             }}
                                                             style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                                                             alt="Attachment"

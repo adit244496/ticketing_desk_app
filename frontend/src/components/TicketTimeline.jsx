@@ -220,9 +220,9 @@ const TicketTimeline = ({ logs = [], userRole = '' }) => {
                                                             width: '80px', height: '80px', borderRadius: '6px', 
                                                             overflow: 'hidden', cursor: 'pointer', border: '1px solid #e5e7eb'
                                                         }}
-                                                        onClick={() => window.open(`http://localhost:5000/uploads/${log.attachment}`, '_blank')}
+                                                        onClick={() => window.open(`/uploads/${log.attachment}`, '_blank')}
                                                     >
-                                                        <img src={`http://localhost:5000/uploads/${log.attachment}`} alt="Log Attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <img src={`/uploads/${log.attachment}`} alt="Log Attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     </div>
                                                 </div>
                                             )}
