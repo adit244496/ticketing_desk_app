@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 import database
 from PIL import Image
-#
+
 ticket_bp = Blueprint('ticket', __name__)
 
 def compress_image(file_path, max_size_kb=20):
