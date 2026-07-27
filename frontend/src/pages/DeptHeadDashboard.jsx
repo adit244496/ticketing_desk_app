@@ -9,7 +9,7 @@ import {
 import Layout from '../components/Layout';
 import DeptAnalytics from '../components/DeptAnalytics';
 import TicketTimeline from '../components/TicketTimeline';
-import { Filter, Briefcase, TrendingUp, BarChart2, CheckCircle, XCircle, Zap, Cog, X, Maximize2, Minimize2, FileText, Clock, MessageSquare, AlertTriangle, CheckCircle2, Paperclip } from 'lucide-react';
+import { Filter, Briefcase, TrendingUp, BarChart2, CheckCircle, XCircle, Zap, Cog, X, Maximize2, Minimize2, FileText, Clock, MessageSquare, AlertTriangle, CheckCircle2, Paperclip, Search } from 'lucide-react';
 
 import TicketFilterBar from '../components/TicketFilterBar';
 
@@ -252,282 +252,288 @@ const DeptHeadDashboard = ({ user, setUser }) => {
 
     return (
         <Layout user={user} setUser={setUser} sidebarTabs={sidebarTabs} activeTab={activeTab} setActiveTab={(t) => { setActiveTab(t); setSelectedTicket(null); setIsPanelExpanded(false); }}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div style={{ marginBottom: '16px', flexShrink: 0 }}>
-                    <h2 style={{ margin: 0, fontSize: '19px', display: 'flex', alignItems: 'center', gap: '8px' }}><Briefcase size={22} color="#3b82f6" /> {user.department} Department Hub</h2>
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
+                {/* WRAPPER FOR MAIN CONTENT TO SHRINK WHEN SIDE PANEL OPENS */}
+                <div style={{ paddingRight: selectedTicket ? (isPanelExpanded ? '0' : '434px') : '0', transition: 'padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1)', flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ marginBottom: '16px', flexShrink: 0 }}>
+                        <h2 style={{ margin: 0, fontSize: '19px', display: 'flex', alignItems: 'center', gap: '8px' }}><Briefcase size={22} color="#3b82f6" /> {user.department} Department Hub</h2>
+                    </div>
 
-                {error && (
-                    <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '8px', borderRadius: '3px', marginBottom: '12px', fontSize: '10px' }}>
-                        {error}
-                    </div>
-                )}
-
-                {/* --- GLOBAL KPI METRICS BOARD (ALWAYS VISIBLE) --- */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', marginBottom: '20px', flexShrink: 0 }}>
-                    <div className="card kpi-blue" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #3b82f6', background: 'linear-gradient(180deg, rgba(59,130,246,0.25) 0%, rgba(59,130,246,0) 100%)' }}>
-                        <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Total</p>
-                        <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.total}</h2>
-                    </div>
-                    <div className="card kpi-amber" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #f59e0b', background: 'linear-gradient(180deg, rgba(245,158,11,0.25) 0%, rgba(245,158,11,0) 100%)' }}>
-                        <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Open</p>
-                        <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.open}</h2>
-                    </div>
-                    <div className="card kpi-purple" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #8b5cf6', background: 'linear-gradient(180deg, rgba(139,92,246,0.25) 0%, rgba(139,92,246,0) 100%)' }}>
-                        <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>In Progress</p>
-                        <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.inProgress}</h2>
-                    </div>
-                    <div className="card kpi-teal" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #14b8a6', background: 'linear-gradient(180deg, rgba(20,184,166,0.25) 0%, rgba(20,184,166,0) 100%)' }}>
-                        <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Resolved</p>
-                        <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.resolved}</h2>
-                    </div>
-                    <div className="card kpi-green" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #10b981', background: 'linear-gradient(180deg, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 100%)' }}>
-                        <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Closed</p>
-                        <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.closed}</h2>
-                    </div>
-                    <div className="card kpi-gray" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #6b7280', background: 'linear-gradient(180deg, rgba(107,114,128,0.25) 0%, rgba(107,114,128,0) 100%)' }}>
-                        <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Declined</p>
-                        <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.declined}</h2>
-                    </div>
-                    <div className="card kpi-red" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #ef4444', background: 'linear-gradient(180deg, rgba(239,68,68,0.25) 0%, rgba(239,68,68,0) 100%)' }}>
-                        <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>SLA Breach</p>
-                        <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.late}</h2>
-                    </div>
-                </div>
-
-                {/* ANALYTICS TAB */}
-                {activeTab === 'analytics' && !loading && (
-                    <DeptAnalytics tickets={deptTickets} />
-                )}
-
-                {/* OVERVIEW TAB */}
-                {activeTab === 'overview' && !loading && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                        <div className="card" style={{ padding: '16px', zIndex: 10, marginBottom: '16px' }}>
-                            <TicketFilterBar tickets={deptTickets} onFilter={setFilteredOverviewTickets} usersList={allUsers} />
+                    {error && (
+                        <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '8px', borderRadius: '3px', marginBottom: '12px', fontSize: '10px' }}>
+                            {error}
                         </div>
+                    )}
 
-                        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '400px' }}>
-                            <h3 style={{ marginBottom: '12px', fontSize: '14px', flexShrink: 0 }}>Department Workload List</h3>
-                            <div style={{ flex: 1, overflowY: 'auto' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'left' }}>
-                                    <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#18181b', color: '#a1a1aa' }}>
-                                        <tr>
-                                            <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Ticket ID</th>
-                                            <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Issue Type</th>
-                                            <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Assigned To</th>
-                                            <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'center', fontWeight: '600' }}>Date Raised</th>
-                                            <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'center', fontWeight: '600' }}>Deadline</th>
-                                            <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Status</th>
-                                            <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Score</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredOverviewTickets.length === 0 ? (
-                                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '16px', color: '#a1a1aa' }}>No tickets match your filter criteria.</td></tr>
-                                        ) : (
-                                            filteredOverviewTickets.map(t => (
-                                                <tr key={t.ticket_id} onClick={() => handleTicketClick(t)} style={{ borderBottom: '1px solid #27272a', transition: 'background-color 0.2s', cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#18181b'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                                    <td style={{ fontWeight: 'bold', padding: '8px', border: '1px solid #27272a' }}>
+                    {/* --- GLOBAL KPI METRICS BOARD (ALWAYS VISIBLE) --- */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', marginBottom: '20px', flexShrink: 0 }}>
+                        <div className="card kpi-blue" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #3b82f6', background: 'linear-gradient(180deg, rgba(59,130,246,0.25) 0%, rgba(59,130,246,0) 100%)' }}>
+                            <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Total</p>
+                            <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.total}</h2>
+                        </div>
+                        <div className="card kpi-amber" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #f59e0b', background: 'linear-gradient(180deg, rgba(245,158,11,0.25) 0%, rgba(245,158,11,0) 100%)' }}>
+                            <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Open</p>
+                            <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.open}</h2>
+                        </div>
+                        <div className="card kpi-purple" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #8b5cf6', background: 'linear-gradient(180deg, rgba(139,92,246,0.25) 0%, rgba(139,92,246,0) 100%)' }}>
+                            <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>In Progress</p>
+                            <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.inProgress}</h2>
+                        </div>
+                        <div className="card kpi-teal" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #14b8a6', background: 'linear-gradient(180deg, rgba(20,184,166,0.25) 0%, rgba(20,184,166,0) 100%)' }}>
+                            <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Resolved</p>
+                            <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.resolved}</h2>
+                        </div>
+                        <div className="card kpi-green" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #10b981', background: 'linear-gradient(180deg, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 100%)' }}>
+                            <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Closed</p>
+                            <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.closed}</h2>
+                        </div>
+                        <div className="card kpi-gray" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #6b7280', background: 'linear-gradient(180deg, rgba(107,114,128,0.25) 0%, rgba(107,114,128,0) 100%)' }}>
+                            <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>Declined</p>
+                            <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.declined}</h2>
+                        </div>
+                        <div className="card kpi-red" style={{ padding: '12px 8px', margin: 0, textAlign: 'center', borderTop: '2px solid #ef4444', background: 'linear-gradient(180deg, rgba(239,68,68,0.25) 0%, rgba(239,68,68,0) 100%)' }}>
+                            <p style={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: '600', margin: '0 0 4px 0' }}>SLA Breach</p>
+                            <h2 style={{ fontSize: '19px', margin: 0, color: '#fff' }}>{globalKPI.late}</h2>
+                        </div>
+                    </div>
+
+                    {/* ANALYTICS TAB */}
+                    {activeTab === 'analytics' && !loading && (
+                        <DeptAnalytics tickets={deptTickets} />
+                    )}
+
+                    {/* OVERVIEW TAB */}
+                    {activeTab === 'overview' && !loading && (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                            <div className="card" style={{ padding: '16px', zIndex: 10, marginBottom: '16px' }}>
+                                <TicketFilterBar tickets={deptTickets} onFilter={setFilteredOverviewTickets} usersList={allUsers} />
+                            </div>
+
+                            <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '400px' }}>
+                                <h3 style={{ marginBottom: '12px', fontSize: '14px', flexShrink: 0 }}>Department Workload List</h3>
+                                <div style={{ flex: 1, overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'left' }}>
+                                        <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#18181b', color: '#a1a1aa' }}>
+                                            <tr>
+                                                <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Ticket ID</th>
+                                                <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Issue Type</th>
+                                                <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Assigned To</th>
+                                                <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'center', fontWeight: '600' }}>Date Raised</th>
+                                                <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'center', fontWeight: '600' }}>Deadline</th>
+                                                <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Status</th>
+                                                <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredOverviewTickets.length === 0 ? (
+                                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '16px', color: '#a1a1aa' }}>No tickets match your filter criteria.</td></tr>
+                                            ) : (
+                                                filteredOverviewTickets.map(t => (
+                                                    <tr key={t.ticket_id} onClick={() => handleTicketClick(t)} style={{ borderBottom: '1px solid #27272a', transition: 'background-color 0.2s', cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#18181b'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                                        <td style={{ fontWeight: 'bold', padding: '8px', border: '1px solid #27272a' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                #{t.ticket_id}
+                                                                {t.SLA_Breach && <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '12px', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', fontWeight: 'bold', whiteSpace: 'nowrap' }}>SLA BREACH</span>}
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '8px', border: '1px solid #27272a' }}>{t.issue_type}</td>
+                                                        <td style={{ padding: '8px', border: '1px solid #27272a' }}>{t.assigned_to ? getDisplayName(t.assigned_to) : <span style={{ color: '#ef4444' }}>Unassigned</span>}</td>
+                                                        <td style={{ padding: '8px', textAlign: 'center', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.timestamp}</td>
+                                                        <td style={{ padding: '8px', textAlign: 'center', color: '#10b981', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.deadline || 'N/A'}</td>
+                                                        <td style={{ padding: '8px', border: '1px solid #27272a' }}><span style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 'bold' }}>{t.closure_type === 'Declined' ? 'Declined' : t.status}</span></td>
+                                                        <td style={{ color: t.total_score > 10 ? '#ef4444' : 'inherit', fontWeight: t.total_score > 10 ? 'bold' : 'normal', padding: '8px', border: '1px solid #27272a' }}>{t.total_score}</td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* APPROVALS TAB */}
+                    {activeTab === 'approvals' && !loading && (
+                        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                            <h3 style={{ marginBottom: '12px', fontSize: '14px', flexShrink: 0 }}>Handover Requests</h3>
+                            <p style={{ fontSize: '10px', color: '#a1a1aa', marginBottom: '16px', flexShrink: 0 }}>Review and approve peer-to-peer ticket transfer requests.</p>
+
+                            {pendingApprovals.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '24px', backgroundColor: '#18181b', borderRadius: '5px' }}>No pending requests.</div>
+                            ) : (
+                                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {pendingApprovals.map(t => (
+                                        <div key={t.ticket_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #27272a', borderRadius: '6px', padding: '12px 16px', backgroundColor: '#18181b', gap: '16px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <strong style={{ fontSize: '13px', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>#{t.ticket_id} - {t.issue_type}</strong>
+                                                    <span style={{ fontSize: '10px', color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: '12px', whiteSpace: 'nowrap' }}>Sev: {t.total_score}</span>
+                                                </div>
+                                                <p style={{ margin: 0, fontSize: '11px', color: '#a1a1aa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Reason: "{t.reassign_reason}"</p>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '0 24px', borderLeft: '1px solid #3f3f46', borderRight: '1px solid #3f3f46', minWidth: 'fit-content' }}>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <p style={{ margin: 0, fontSize: '9px', color: '#71717a', textTransform: 'uppercase' }}>From</p>
+                                                    <strong style={{ fontSize: '11px', color: '#d4d4d8' }}>{getDisplayName(t.assigned_to)}</strong>
+                                                </div>
+                                                <div style={{ color: '#3b82f6' }}>➔</div>
+                                                <div style={{ textAlign: 'left' }}>
+                                                    <p style={{ margin: 0, fontSize: '9px', color: '#71717a', textTransform: 'uppercase' }}>To</p>
+                                                    <strong style={{ color: '#60a5fa', fontSize: '11px' }}>{getDisplayName(t.reassign_requested_to)}</strong>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '8px', minWidth: 'fit-content' }}>
+                                                <button onClick={() => handleApprovalAction(t.ticket_id, 'approve')} className="btn btn-success" style={{ fontSize: '11px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '4px' }}><CheckCircle size={14} /> Approve</button>
+                                                <button onClick={() => handleApprovalAction(t.ticket_id, 'reject')} className="btn btn-danger" style={{ fontSize: '11px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '4px' }}><XCircle size={14} /> Reject</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* OVERRIDE TAB */}
+                    {activeTab === 'override' && !loading && (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center', flexShrink: 0 }}>
+                                <h3 style={{ fontSize: '13px', fontWeight: 'bold', margin: 0 }}>Manager Override (Force Reassign)</h3>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Search ticket #, issue, or solver..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        style={{ width: '224px', padding: '6px 10px', fontSize: '10px' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                                <div style={{ flex: 1, overflowY: 'auto' }}>
+                                    <table className="table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                                        <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#18181b' }}>
+                                            <tr style={{ borderBottom: '2px solid #27272a', color: '#a1a1aa', fontSize: '10px' }}>
+                                                <th style={{ padding: '10px', border: '1px solid #27272a' }}>Ticket #</th>
+                                                <th style={{ padding: '10px', border: '1px solid #27272a' }}>Issue Type</th>
+                                                <th style={{ padding: '10px', border: '1px solid #27272a' }}>Current Solver</th>
+                                                <th style={{ padding: '10px', border: '1px solid #27272a', textAlign: 'center' }}>Date Raised</th>
+                                                <th style={{ padding: '10px', border: '1px solid #27272a', textAlign: 'center' }}>Deadline</th>
+                                                <th style={{ padding: '10px', border: '1px solid #27272a' }}>New Solver</th>
+                                                <th style={{ padding: '10px', border: '1px solid #27272a' }}>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredOverrideTickets.map(t => (
+                                                <tr key={t.ticket_id} style={{ borderBottom: '1px solid #27272a', fontSize: '11px' }}>
+                                                    <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                             #{t.ticket_id}
                                                             {t.SLA_Breach && <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '12px', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', fontWeight: 'bold', whiteSpace: 'nowrap' }}>SLA BREACH</span>}
                                                         </div>
                                                     </td>
-                                                    <td style={{ padding: '8px', border: '1px solid #27272a' }}>{t.issue_type}</td>
-                                                    <td style={{ padding: '8px', border: '1px solid #27272a' }}>{t.assigned_to ? getDisplayName(t.assigned_to) : <span style={{ color: '#ef4444' }}>Unassigned</span>}</td>
-                                                    <td style={{ padding: '8px', textAlign: 'center', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.timestamp}</td>
-                                                    <td style={{ padding: '8px', textAlign: 'center', color: '#10b981', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.deadline || 'N/A'}</td>
-                                                    <td style={{ padding: '8px', border: '1px solid #27272a' }}><span style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 'bold' }}>{t.status}</span></td>
-                                                    <td style={{ color: t.total_score > 10 ? '#ef4444' : 'inherit', fontWeight: t.total_score > 10 ? 'bold' : 'normal', padding: '8px', border: '1px solid #27272a' }}>{t.total_score}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{t.issue_type}</td>
+                                                    <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{t.assigned_to ? getDisplayName(t.assigned_to) : 'Unassigned'}</td>
+                                                    <td style={{ padding: '10px', textAlign: 'center', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.timestamp}</td>
+                                                    <td style={{ padding: '10px', textAlign: 'center', color: '#10b981', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.deadline || 'N/A'}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>
+                                                        <select
+                                                            className="form-control"
+                                                            style={{ width: '160px', padding: '5px 10px', fontSize: '10px', margin: 0 }}
+                                                            onChange={(e) => setOverrideForms(prev => ({ ...prev, [t.ticket_id]: e.target.value }))}
+                                                            value={overrideForms[t.ticket_id] || ''}
+                                                        >
+                                                            <option value="" disabled>Select new assignee...</option>
+                                                            {deptSolvers.map(s => (
+                                                                <option key={s.email} value={s.email} disabled={s.email === t.assigned_to}>{s.name} ({s.email})</option>
+                                                            ))}
+                                                        </select>
+                                                    </td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>
+                                                        <button onClick={(e) => handleForceReassign(e, t.ticket_id)} className="btn" style={{ padding: '5px 10px', fontSize: '10px', backgroundColor: '#3b82f6' }}>Execute</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {filteredOverrideTickets.length === 0 && (
+                                                <tr><td colSpan="7" style={{ padding: '16px', textAlign: 'center', color: '#71717a', fontSize: '10px' }}>No active tickets available matching your search.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* RULES TAB */}
+                    {activeTab === 'rules' && !loading && (
+                        <div className="card">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <h3 style={{ fontSize: '14px', margin: 0 }}>{user.department} Routing Rules</h3>
+                                <div style={{ flex: 0.5 }}>
+                                    <div style={{ position: 'relative' }}>
+                                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="Filter rules by Issue, Location, or Solver..."
+                                            value={ruleSearchQuery}
+                                            onChange={(e) => setRuleSearchQuery(e.target.value)}
+                                            style={{ padding: '6px 10px 6px 30px', fontSize: '10px' }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                                    <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#18181b' }}>
+                                        <tr>
+                                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Issue Type</th>
+                                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Location</th>
+                                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Priority</th>
+                                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Deadline</th>
+                                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Assigned Solver(s)</th>
+                                            <th style={{ padding: '10px', textAlign: 'right', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredRules.length === 0 ? (
+                                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '16px', color: '#71717a' }}>No rules match your search.</td></tr>
+                                        ) : (
+                                            filteredRules.map((r, idx) => (
+                                                <tr
+                                                    key={idx}
+                                                    style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#18181b'}
+                                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                    onClick={() => openRuleModal(r)}
+                                                >
+                                                    <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.issue_type}</td>
+                                                    <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{r.outlet && String(r.outlet).toLowerCase() !== 'nan' ? r.outlet : 'Global (All)'}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{r.base_priority}</td>
+                                                    <td style={{ padding: '10px', color: '#10b981', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.deadline_hours || 24} Hrs</td>
+                                                    <td style={{ padding: '10px', color: '#60a5fa', border: '1px solid #27272a' }}>
+                                                        {r.assigned_solver && String(r.assigned_solver).toLowerCase() !== 'nan'
+                                                            ? String(r.assigned_solver).split(',').map(s => getDisplayName(s.trim())).join(', ')
+                                                            : <span style={{ color: '#ef4444' }}>Unassigned</span>}
+                                                    </td>
+                                                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #27272a' }}>
+                                                        <button className="btn" style={{ padding: '3px 6px', fontSize: '10px', backgroundColor: '#3f3f46' }}>Edit</button>
+                                                    </td>
                                                 </tr>
                                             ))
                                         )}
                                     </tbody>
                                 </table>
                             </div>
+
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* APPROVALS TAB */}
-                {activeTab === 'approvals' && !loading && (
-                    <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                        <h3 style={{ marginBottom: '12px', fontSize: '14px', flexShrink: 0 }}>Handover Requests</h3>
-                        <p style={{ fontSize: '10px', color: '#a1a1aa', marginBottom: '16px', flexShrink: 0 }}>Review and approve peer-to-peer ticket transfer requests.</p>
-
-                        {pendingApprovals.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '24px', backgroundColor: '#18181b', borderRadius: '5px' }}>No pending requests.</div>
-                        ) : (
-                            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {pendingApprovals.map(t => (
-                                    <div key={t.ticket_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #27272a', borderRadius: '6px', padding: '12px 16px', backgroundColor: '#18181b', gap: '16px' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <strong style={{ fontSize: '13px', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>#{t.ticket_id} - {t.issue_type}</strong>
-                                                <span style={{ fontSize: '10px', color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: '12px', whiteSpace: 'nowrap' }}>Sev: {t.total_score}</span>
-                                            </div>
-                                            <p style={{ margin: 0, fontSize: '11px', color: '#a1a1aa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Reason: "{t.reassign_reason}"</p>
-                                        </div>
-
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '0 24px', borderLeft: '1px solid #3f3f46', borderRight: '1px solid #3f3f46', minWidth: 'fit-content' }}>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <p style={{ margin: 0, fontSize: '9px', color: '#71717a', textTransform: 'uppercase' }}>From</p>
-                                                <strong style={{ fontSize: '11px', color: '#d4d4d8' }}>{getDisplayName(t.assigned_to)}</strong>
-                                            </div>
-                                            <div style={{ color: '#3b82f6' }}>➔</div>
-                                            <div style={{ textAlign: 'left' }}>
-                                                <p style={{ margin: 0, fontSize: '9px', color: '#71717a', textTransform: 'uppercase' }}>To</p>
-                                                <strong style={{ color: '#60a5fa', fontSize: '11px' }}>{getDisplayName(t.reassign_requested_to)}</strong>
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '8px', minWidth: 'fit-content' }}>
-                                            <button onClick={() => handleApprovalAction(t.ticket_id, 'approve')} className="btn btn-success" style={{ fontSize: '11px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '4px' }}><CheckCircle size={14} /> Approve</button>
-                                            <button onClick={() => handleApprovalAction(t.ticket_id, 'reject')} className="btn btn-danger" style={{ fontSize: '11px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '4px' }}><XCircle size={14} /> Reject</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* OVERRIDE TAB */}
-                {activeTab === 'override' && !loading && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center', flexShrink: 0 }}>
-                            <h3 style={{ fontSize: '13px', fontWeight: 'bold', margin: 0 }}>Manager Override (Force Reassign)</h3>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Search ticket #, issue, or solver..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ width: '224px', padding: '6px 10px', fontSize: '10px' }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                            <div style={{ flex: 1, overflowY: 'auto' }}>
-                                <table className="table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                                    <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#18181b' }}>
-                                        <tr style={{ borderBottom: '2px solid #27272a', color: '#a1a1aa', fontSize: '10px' }}>
-                                            <th style={{ padding: '10px', border: '1px solid #27272a' }}>Ticket #</th>
-                                            <th style={{ padding: '10px', border: '1px solid #27272a' }}>Issue Type</th>
-                                            <th style={{ padding: '10px', border: '1px solid #27272a' }}>Current Solver</th>
-                                            <th style={{ padding: '10px', border: '1px solid #27272a', textAlign: 'center' }}>Date Raised</th>
-                                            <th style={{ padding: '10px', border: '1px solid #27272a', textAlign: 'center' }}>Deadline</th>
-                                            <th style={{ padding: '10px', border: '1px solid #27272a' }}>New Solver</th>
-                                            <th style={{ padding: '10px', border: '1px solid #27272a' }}>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredOverrideTickets.map(t => (
-                                            <tr key={t.ticket_id} style={{ borderBottom: '1px solid #27272a', fontSize: '11px' }}>
-                                                <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        #{t.ticket_id}
-                                                        {t.SLA_Breach && <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '12px', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', fontWeight: 'bold', whiteSpace: 'nowrap' }}>SLA BREACH</span>}
-                                                    </div>
-                                                </td>
-                                                <td style={{ padding: '10px', border: '1px solid #27272a' }}>{t.issue_type}</td>
-                                                <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{t.assigned_to ? getDisplayName(t.assigned_to) : 'Unassigned'}</td>
-                                                <td style={{ padding: '10px', textAlign: 'center', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.timestamp}</td>
-                                                <td style={{ padding: '10px', textAlign: 'center', color: '#10b981', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.deadline || 'N/A'}</td>
-                                                <td style={{ padding: '10px', border: '1px solid #27272a' }}>
-                                                    <select
-                                                        className="form-control"
-                                                        style={{ width: '160px', padding: '5px 10px', fontSize: '10px', margin: 0 }}
-                                                        onChange={(e) => setOverrideForms(prev => ({ ...prev, [t.ticket_id]: e.target.value }))}
-                                                        value={overrideForms[t.ticket_id] || ''}
-                                                    >
-                                                        <option value="" disabled>Select new assignee...</option>
-                                                        {deptSolvers.map(s => (
-                                                            <option key={s.email} value={s.email} disabled={s.email === t.assigned_to}>{s.name} ({s.email})</option>
-                                                        ))}
-                                                    </select>
-                                                </td>
-                                                <td style={{ padding: '10px', border: '1px solid #27272a' }}>
-                                                    <button onClick={(e) => handleForceReassign(e, t.ticket_id)} className="btn" style={{ padding: '5px 10px', fontSize: '10px', backgroundColor: '#3b82f6' }}>Execute</button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {filteredOverrideTickets.length === 0 && (
-                                            <tr><td colSpan="7" style={{ padding: '16px', textAlign: 'center', color: '#71717a', fontSize: '10px' }}>No active tickets available matching your search.</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* RULES TAB */}
-                {activeTab === 'rules' && !loading && (
-                    <div className="card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h3 style={{ fontSize: '14px', margin: 0 }}>{user.department} Routing Rules</h3>
-                            <div style={{ flex: 0.5 }}>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="🔍 Filter rules by Issue, Location, or Solver..."
-                                    value={ruleSearchQuery}
-                                    onChange={(e) => setRuleSearchQuery(e.target.value)}
-                                    style={{ padding: '6px 10px', fontSize: '10px' }}
-                                />
-                            </div>
-                        </div>
-
-                        <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
-                                <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#18181b' }}>
-                                    <tr>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Issue Type</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Location</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Priority</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Deadline</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Assigned Solver(s)</th>
-                                        <th style={{ padding: '10px', textAlign: 'right', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredRules.length === 0 ? (
-                                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '16px', color: '#71717a' }}>No rules match your search.</td></tr>
-                                    ) : (
-                                        filteredRules.map((r, idx) => (
-                                            <tr
-                                                key={idx}
-                                                style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#18181b'}
-                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                onClick={() => openRuleModal(r)}
-                                            >
-                                                <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.issue_type}</td>
-                                                <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{r.outlet && String(r.outlet).toLowerCase() !== 'nan' ? r.outlet : 'Global (All)'}</td>
-                                                <td style={{ padding: '10px', border: '1px solid #27272a' }}>{r.base_priority}</td>
-                                                <td style={{ padding: '10px', color: '#10b981', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.deadline_hours || 24} Hrs</td>
-                                                <td style={{ padding: '10px', color: '#60a5fa', border: '1px solid #27272a' }}>
-                                                    {r.assigned_solver && String(r.assigned_solver).toLowerCase() !== 'nan'
-                                                        ? String(r.assigned_solver).split(',').map(s => getDisplayName(s.trim())).join(', ')
-                                                        : <span style={{ color: '#ef4444' }}>Unassigned</span>}
-                                                </td>
-                                                <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #27272a' }}>
-                                                    <button className="btn" style={{ padding: '3px 6px', fontSize: '10px', backgroundColor: '#3f3f46' }}>Edit</button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                    </div>
-                )}
-
+                </div>
                 {/* INLINE TICKET PANEL (Mirrors Admin Dashboard) */}
                 {selectedTicket && (
                     <>
@@ -543,7 +549,7 @@ const DeptHeadDashboard = ({ user, setUser }) => {
                                 <div>
                                     <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', color: '#fff' }}>
                                         #{selectedTicket.ticket_id}
-                                        <span style={{ backgroundColor: selectedTicket.status === 'Closed' ? '#27272a' : selectedTicket.status === 'Resolved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: selectedTicket.status === 'Closed' ? '#a1a1aa' : selectedTicket.status === 'Resolved' ? '#10b981' : '#60a5fa', padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: 'bold' }}>{selectedTicket.status}</span>
+                                        <span style={{ backgroundColor: selectedTicket.closure_type === 'Declined' ? 'rgba(239, 68, 68, 0.1)' : selectedTicket.status === 'Closed' ? '#27272a' : selectedTicket.status === 'Resolved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: selectedTicket.closure_type === 'Declined' ? '#ef4444' : selectedTicket.status === 'Closed' ? '#a1a1aa' : selectedTicket.status === 'Resolved' ? '#10b981' : '#60a5fa', padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: 'bold' }}>{selectedTicket.closure_type === 'Declined' ? 'Declined' : selectedTicket.status}</span>
                                     </h3>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -607,10 +613,10 @@ const DeptHeadDashboard = ({ user, setUser }) => {
                                                 <div style={{ width: '100px', flexShrink: 0 }}>
                                                     <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Attached File:</strong>
                                                     <img
-                                                        src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `/uploads/${selectedTicket.attachment}`}
+                                                        src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `http://localhost:5000/uploads/${selectedTicket.attachment}`}
                                                         onClick={() => {
                                                             const attachStr = String(selectedTicket.attachment);
-                                                            window.open(attachStr.startsWith('data:') ? attachStr : `/uploads/${attachStr}`, '_blank');
+                                                            window.open(attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`, '_blank');
                                                         }}
                                                         style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                                                         alt="Attachment"
@@ -626,7 +632,7 @@ const DeptHeadDashboard = ({ user, setUser }) => {
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                                        <div className="chat-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: '#18181b' }}>
+                                        <div className="chat-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                             {logsLoading ? <p style={{ color: '#71717a', fontSize: '11px', textAlign: 'center' }}>Loading conversation...</p> : (
                                                 ticketLogs.map((log, i) => {
                                                     const isChat = log.action === 'Chat' || log.action === 'Message';
@@ -721,4 +727,4 @@ const DeptHeadDashboard = ({ user, setUser }) => {
     );
 };
 
-export default DeptHeadDashboard;
+export default DeptHeadDashboard;   

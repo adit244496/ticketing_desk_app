@@ -13,7 +13,7 @@ import api, {
 import Layout from '../components/Layout';
 import AdminAnalytics from '../components/AdminAnalytics';
 import TicketTimeline from '../components/TicketTimeline';
-import { Download, AlertTriangle, Settings, TrendingUp, Clock, Users, MapPin, Cog, CheckCircle2, FileText, MessageSquare, Paperclip, X, Maximize2, Minimize2, Filter, Upload, FileUp, Key, Trash2 } from 'lucide-react';
+import { Download, AlertTriangle, Settings, TrendingUp, Clock, Users, MapPin, Cog, CheckCircle2, FileText, MessageSquare, Paperclip, X, Maximize2, Minimize2, Filter, Upload, FileUp, Key, Trash2, Search, Star, User, ShieldCheck, Pen } from 'lucide-react';
 import TicketFilterBar from '../components/TicketFilterBar';
 
 const AdminDashboard = ({ user, setUser }) => {
@@ -26,7 +26,7 @@ const AdminDashboard = ({ user, setUser }) => {
     const [departmentsList, setDepartmentsList] = useState([]);
     const [rulesList, setRulesList] = useState([]);
     const [ticketsList, setTicketsList] = useState([]);
-    
+
     // --- MASTER INNER TAB STATE ---
     const [activeMasterTab, setActiveMasterTab] = useState('users');
 
@@ -36,7 +36,7 @@ const AdminDashboard = ({ user, setUser }) => {
 
     // --- TICKET SIDE PANEL STATE ---
     const [selectedTicket, setSelectedTicket] = useState(null);
-    
+
     // --- MASTER ROW SELECTION STATE ---
     const [selectedUserRow, setSelectedUserRow] = useState(null);
     const [selectedLocRow, setSelectedLocRow] = useState(null);
@@ -80,7 +80,7 @@ const AdminDashboard = ({ user, setUser }) => {
     const [userSearchQuery, setUserSearchQuery] = useState('');
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [userModalMode, setUserModalMode] = useState('add');
-    const defaultUser = { employee_id: '', email: '', name: '', role: 'Requestor', department: 'IT', outlet: 'ECO0250', grade: 'L01', phone: '', critical_user_rating: 0, manager: '' };
+    const defaultUser = { employee_id: '', email: '', name: '', role: '', department: '', outlet: '', grade: '', phone: '', critical_user_rating: 0, manager: '' };
     const [userFormData, setUserFormData] = useState(defaultUser);
 
     // --- LOCATIONS UI STATE ---
@@ -122,6 +122,107 @@ const AdminDashboard = ({ user, setUser }) => {
     const [activeRuleFilters, setActiveRuleFilters] = useState([]);
     const defaultRuleFilters = { department: '', issue_type: '', assigned_solver: '', location: '' };
     const [ruleFilters, setRuleFilters] = useState(defaultRuleFilters);
+
+    // --- RATINGS REPORT UI STATE ---
+    const [ratingSubTab, setRatingSubTab] = useState('requestor');
+    const [ratingSearchQuery, setRatingSearchQuery] = useState('');
+
+    const getUserMatch = (assignedToRaw, user) => {
+        if (!assignedToRaw || !user) return false;
+        const rawStr = String(assignedToRaw).toLowerCase();
+
+        // The backend formats assigned_to as "Name (Phone)" before sending to frontend
+        if (user.name && rawStr.includes(String(user.name).toLowerCase())) return true;
+        if (user.phone && rawStr.includes(String(user.phone).toLowerCase())) return true;
+
+        const parts = rawStr.split(',').map(s => s.trim());
+        const userEmpId = String(user.employee_id || '').toLowerCase().trim();
+        const userEmpIdClean = userEmpId.split('.')[0];
+        const userEmail = String(user.email || '').toLowerCase().trim();
+
+        return parts.some(part => {
+            const pClean = part.split('.')[0];
+            return part === userEmpId || (userEmpIdClean && pClean === userEmpIdClean) || part === userEmail;
+        });
+    };
+
+    const isRaiserMatch = (raiserProp, user) => {
+        if (!raiserProp || !user) return false;
+        const rStr = String(raiserProp).trim().toLowerCase();
+        const rClean = rStr.split('.')[0];
+        const emailStr = String(user.email || '').toLowerCase().trim();
+        const empIdStr = String(user.employee_id || '').toLowerCase().trim();
+        const empIdClean = empIdStr.split('.')[0];
+        return rStr === emailStr || (empIdClean && rClean === empIdClean);
+    };
+
+    const getRatingNum = (ticket, field1, field2) => {
+        if (!ticket) return null;
+        const val1 = ticket[field1];
+        if (val1 !== undefined && val1 !== null && val1 !== '' && !isNaN(Number(val1))) {
+            return Number(val1);
+        }
+        const val2 = ticket[field2];
+        if (val2 !== undefined && val2 !== null && val2 !== '' && !isNaN(Number(val2))) {
+            return Number(val2);
+        }
+        return null;
+    };
+
+    const requestorRatingsList = useMemo(() => {
+        const requestorEmails = new Set(ticketsList.map(t => String(t.raiser_email || '').toLowerCase()).filter(Boolean));
+        const requestors = usersList.filter(u => u.role === 'Requestor' || (u.role !== 'Admin' && u.role !== 'Super Admin' && requestorEmails.has(String(u.email || '').toLowerCase())));
+
+        return requestors.map(u => {
+            const userTickets = ticketsList.filter(t => isRaiserMatch(t.raiser_email, u));
+            const ratedScores = userTickets
+                .map(t => getRatingNum(t, 'requestor_rating', 'solver_rating_raiser'))
+                .filter(score => score !== null);
+
+            const totalScore = ratedScores.reduce((sum, score) => sum + score, 0);
+            const avg = ratedScores.length > 0 ? (totalScore / ratedScores.length).toFixed(1) : null;
+            return {
+                ...u,
+                ratedCount: ratedScores.length,
+                totalTickets: userTickets.length,
+                avgRating: avg
+            };
+        });
+    }, [usersList, ticketsList]);
+
+    const solverRatingsList = useMemo(() => {
+        // Only include Solvers and Dept. Heads (strictly exclude Admin and Super Admin)
+        const solvers = usersList.filter(u => u.role === 'Solver' || u.role === 'Dept. Head');
+
+        return solvers.map(u => {
+            const userTickets = ticketsList.filter(t => getUserMatch(t.assigned_to, u));
+            const ratedScores = userTickets
+                .map(t => getRatingNum(t, 'solver_rating', 'raiser_rating_solver'))
+                .filter(score => score !== null);
+
+            const totalScore = ratedScores.reduce((sum, score) => sum + score, 0);
+            const avg = ratedScores.length > 0 ? (totalScore / ratedScores.length).toFixed(1) : null;
+            return {
+                ...u,
+                ratedCount: ratedScores.length,
+                totalTickets: userTickets.length,
+                avgRating: avg
+            };
+        });
+    }, [usersList, ticketsList]);
+
+    const filteredRatingList = useMemo(() => {
+        const list = ratingSubTab === 'requestor' ? requestorRatingsList : solverRatingsList;
+        const q = ratingSearchQuery.toLowerCase().trim();
+        if (!q) return list;
+        return list.filter(u =>
+            String(u.name || '').toLowerCase().includes(q) ||
+            String(u.email || '').toLowerCase().includes(q) ||
+            String(u.employee_id || '').toLowerCase().includes(q) ||
+            String(u.department || '').toLowerCase().includes(q) ||
+            String(u.outlet || '').toLowerCase().includes(q)
+        );
+    }, [ratingSubTab, requestorRatingsList, solverRatingsList, ratingSearchQuery]);
 
     useEffect(() => {
         loadSystemData();
@@ -228,12 +329,33 @@ const AdminDashboard = ({ user, setUser }) => {
     const handleUserSubmit = async (e) => {
         e.preventDefault();
         try {
-            if (userModalMode === 'add') { await createUser(userFormData); alert('User created successfully.'); }
-            else { await updateUser(userFormData); alert('User updated successfully.'); }
+            if (userFormData.phone && String(userFormData.phone).length > 10) {
+                alert("Phone number must not exceed 10 digits");
+                return;
+            }
+            if (userFormData.critical_user_rating !== '' && userFormData.critical_user_rating !== null && userFormData.critical_user_rating !== undefined) {
+                const ratingNum = Number(userFormData.critical_user_rating);
+                if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+                    alert("Critical User Rating must be between 1 and 5");
+                    return;
+                }
+            }
+            const payload = {
+                ...userFormData,
+                critical_user_rating: (userFormData.critical_user_rating !== '' && userFormData.critical_user_rating !== null && userFormData.critical_user_rating !== undefined)
+                    ? Number(userFormData.critical_user_rating)
+                    : 0
+            };
+            if (userModalMode === 'add') { await createUser(payload); alert('User created successfully.'); }
+            else { await updateUser(payload); alert('User updated successfully.'); }
             setIsUserModalOpen(false); loadSystemData();
         } catch (err) { alert(err.response?.data?.error || "Failed to save user."); }
     };
-    const openUserModal = (mode, userData = defaultUser) => { setUserModalMode(mode); setUserFormData({ ...userData }); setIsUserModalOpen(true); };
+    const openUserModal = (mode, userData = defaultUser) => {
+        setUserModalMode(mode);
+        setUserFormData({ ...userData, original_employee_id: userData.employee_id });
+        setIsUserModalOpen(true);
+    };
 
     // --- LOCATION HANDLERS ---
     const handleLocSubmit = async (e) => {
@@ -265,11 +387,11 @@ const AdminDashboard = ({ user, setUser }) => {
             loadSystemData();
         } catch (err) { alert(err.response?.data?.error || "Failed to save department."); }
     };
-    const openDeptModal = (mode, deptName = '') => { 
-        setDeptModalMode(mode); 
+    const openDeptModal = (mode, deptName = '') => {
+        setDeptModalMode(mode);
         setEditDeptName(deptName);
-        setDeptFormData({ department_name: deptName }); 
-        setIsDeptModalOpen(true); 
+        setDeptFormData({ department_name: deptName });
+        setIsDeptModalOpen(true);
     };
 
     // --- RULE HANDLERS ---
@@ -284,15 +406,15 @@ const AdminDashboard = ({ user, setUser }) => {
         }
         catch (err) { alert(err.response?.data?.error || "Failed to save rule."); }
     };
-    const openRuleModal = (mode, rule = defaultRule) => { 
-        setRuleModalMode(mode); 
-        setEditRule({ 
+    const openRuleModal = (mode, rule = defaultRule) => {
+        setRuleModalMode(mode);
+        setEditRule({
             ...rule,
             original_department: rule.department,
             original_issue_type: rule.issue_type,
             original_outlet: rule.outlet
-        }); 
-        setIsRuleModalOpen(true); 
+        });
+        setIsRuleModalOpen(true);
     };
 
     const handleSolverToggle = (empId) => {
@@ -328,9 +450,9 @@ const AdminDashboard = ({ user, setUser }) => {
     const filteredUsers = usersList.filter(u => {
         const q = userSearchQuery.toLowerCase();
         const matchSearch = (
-            u.name?.toLowerCase().includes(q) || 
-            u.email?.toLowerCase().includes(q) || 
-            String(u.employee_id).toLowerCase().includes(q) || 
+            u.name?.toLowerCase().includes(q) ||
+            u.email?.toLowerCase().includes(q) ||
+            String(u.employee_id).toLowerCase().includes(q) ||
             u.department?.toLowerCase().includes(q) ||
             u.role?.toLowerCase().includes(q) ||
             String(u.manager).toLowerCase().includes(q) ||
@@ -348,8 +470,8 @@ const AdminDashboard = ({ user, setUser }) => {
     const filteredLocations = locationsList.filter(l => {
         const q = locSearchQuery.toLowerCase();
         const matchSearch = (
-            l.outlet?.toLowerCase().includes(q) || 
-            l.brand?.toLowerCase().includes(q) || 
+            l.outlet?.toLowerCase().includes(q) ||
+            l.brand?.toLowerCase().includes(q) ||
             l.location?.toLowerCase().includes(q) ||
             l.city?.toLowerCase().includes(q)
         );
@@ -368,8 +490,8 @@ const AdminDashboard = ({ user, setUser }) => {
     const filteredRules = rulesList.filter(r => {
         const q = ruleSearchQuery.toLowerCase();
         const matchSearch = (
-            r.department?.toLowerCase().includes(q) || 
-            r.issue_type?.toLowerCase().includes(q) || 
+            r.department?.toLowerCase().includes(q) ||
+            r.issue_type?.toLowerCase().includes(q) ||
             String(r.outlet).toLowerCase().includes(q) ||
             String(r.assigned_solver).toLowerCase().includes(q)
         );
@@ -388,17 +510,22 @@ const AdminDashboard = ({ user, setUser }) => {
     };
 
     const handleDeleteUser = async (emp_id) => {
-        if(!window.confirm('Are you sure you want to delete this user?')) return;
+        if (!window.confirm('Are you sure you want to delete this user?')) return;
         try {
             await deleteUser({ employee_id: emp_id });
-            setUsersList(usersList.filter(u => u.employee_id !== emp_id));
+            setUsersList(usersList.filter(u => u.employee_id !== emp_id).map(u => {
+                if (String(u.manager) === String(emp_id)) {
+                    return { ...u, manager: '-' };
+                }
+                return u;
+            }));
         } catch (e) {
             alert('Failed to delete user');
         }
     };
 
     const handleResetPassword = async (emp_id) => {
-        if(!window.confirm('Reset this user\'s password to Kolkata@123?')) return;
+        if (!window.confirm('Reset this user\'s password to Kolkata@123?')) return;
         try {
             await adminResetPassword({ employee_id: emp_id });
             alert('Password reset successfully.');
@@ -408,7 +535,7 @@ const AdminDashboard = ({ user, setUser }) => {
     };
 
     const handleDeleteLocation = async (outlet) => {
-        if(!window.confirm('Are you sure you want to delete this location?')) return;
+        if (!window.confirm('Are you sure you want to delete this location?')) return;
         try {
             await deleteLocation({ outlet });
             setLocationsList(locationsList.filter(l => l.outlet !== outlet));
@@ -418,7 +545,7 @@ const AdminDashboard = ({ user, setUser }) => {
     };
 
     const handleDeleteDepartment = async (dept_name) => {
-        if(!window.confirm('Are you sure you want to delete this department?')) return;
+        if (!window.confirm('Are you sure you want to delete this department?')) return;
         try {
             await deleteDepartment({ department_name: dept_name });
             setDepartmentsList(departmentsList.filter(d => d.department_name !== dept_name));
@@ -428,7 +555,7 @@ const AdminDashboard = ({ user, setUser }) => {
     };
 
     const handleDeleteRule = async (dept, issue) => {
-        if(!window.confirm('Are you sure you want to delete this rule?')) return;
+        if (!window.confirm('Are you sure you want to delete this rule?')) return;
         try {
             await deleteMasterRule({ department: dept, issue_type: issue });
             setRulesList(rulesList.filter(r => !(r.department === dept && r.issue_type === issue)));
@@ -440,6 +567,7 @@ const AdminDashboard = ({ user, setUser }) => {
     const sidebarTabs = [
         { id: 'analytics', label: <><TrendingUp size={12} /> Global Analytics</> },
         { id: 'ageing', label: <><Clock size={12} /> Ageing Report</> },
+        { id: 'ratings', label: <><Star size={12} /> Rating Report</> },
         ...(user?.role !== 'Audit' ? [
             { id: 'masters', label: <><Settings size={12} /> Master Creations</> },
             { id: 'import', label: <><FileUp size={12} /> Import Data</> }
@@ -534,10 +662,10 @@ const AdminDashboard = ({ user, setUser }) => {
                 {activeTab === 'ageing' && !loading && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div className="card" style={{ padding: '16px', zIndex: 10 }}>
-                            <TicketFilterBar 
-                                tickets={ageingData} 
-                                onFilter={setFilteredAgeing} 
-                                usersList={usersList} 
+                            <TicketFilterBar
+                                tickets={ageingData}
+                                onFilter={setFilteredAgeing}
+                                usersList={usersList}
                                 rightActions={
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         {user?.role === 'Super Admin' && (
@@ -545,20 +673,20 @@ const AdminDashboard = ({ user, setUser }) => {
                                                 const id = prompt("Enter the Ticket ID you wish to completely delete:");
                                                 if (id) {
                                                     if (window.confirm(`WARNING: Are you sure you want to PERMANENTLY delete Ticket #${id}? This will also delete all associated chat logs and notifications everywhere. This action cannot be undone.`)) {
-                                                        fetch('/api/admin/tickets/delete', {
+                                                        fetch('http://localhost:5000/api/admin/tickets/delete', {
                                                             method: 'POST',
                                                             headers: { 'Content-Type': 'application/json' },
                                                             body: JSON.stringify({ ticket_id: id.replace('#', '').trim() })
                                                         })
-                                                        .then(res => res.json())
-                                                        .then(data => {
-                                                            if (data.error) alert(data.error);
-                                                            else {
-                                                                alert(data.message);
-                                                                loadSystemData();
-                                                            }
-                                                        })
-                                                        .catch(err => alert("Error deleting ticket."));
+                                                            .then(res => res.json())
+                                                            .then(data => {
+                                                                if (data.error) alert(data.error);
+                                                                else {
+                                                                    alert(data.message);
+                                                                    loadSystemData();
+                                                                }
+                                                            })
+                                                            .catch(err => alert("Error deleting ticket."));
                                                     }
                                                 }
                                             }} style={{ padding: '8px 16px', fontSize: '11px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '8px' }}>
@@ -576,52 +704,146 @@ const AdminDashboard = ({ user, setUser }) => {
                         <div className="card">
                             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>⏳ Full Ticket Ageing Analytics</h3>
                             <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
-                                    <tr>
-                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>ID</th>
-                                        <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Image</th>
-                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Dept</th>
-                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Status</th>
-                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Assigned To</th>
-                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Date Raised</th>
-                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Deadline</th>
-                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Total Age (Hrs)</th>
-                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Res. Time (Hrs)</th>
-                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Total Score</th>
-                                        <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>SLA Breach</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredAgeing.length === 0 ? (
-                                        <tr><td colSpan="11" style={{ textAlign: 'center', padding: '16px', color: '#71717a' }}>No records found.</td></tr>
-                                    ) : (
-                                        filteredAgeing.map(a => (
-                                            <tr key={a.ticket_id} onClick={() => handleTicketClick(a)} style={{ borderBottom: '1px solid #27272a', transition: 'background-color 0.2s', cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#18181b'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                                <td style={{ padding: '8px', fontWeight: 'bold', border: '1px solid #27272a' }}>#{a.ticket_id}</td>
-                                                <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #27272a' }}>
-                                                    {a.attachment && String(a.attachment).toLowerCase() !== 'nan' ? (
-                                                        <img src={String(a.attachment).startsWith('data:') ? String(a.attachment) : `/uploads/${a.attachment}`} style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #3f3f46' }} alt="Attachment" />
-                                                    ) : <span style={{ color: '#52525b' }}>-</span>}
-                                                </td>
-                                                <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.dept_assigned}</td>
-                                                <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.status}</td>
-                                                <td style={{ padding: '8px', color: '#60a5fa', border: '1px solid #27272a' }}>{formatSolverDetails(a.assigned_to)}</td>
-                                                <td style={{ padding: '8px', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{a.timestamp}</td>
-                                                <td style={{ padding: '8px', color: '#10b981', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{a.deadline || 'N/A'}</td>
-                                                <td style={{ padding: '8px', fontWeight: 'bold', border: '1px solid #27272a' }}>{a.ticket_age_hours || '-'}</td>
-                                                <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.solver_resolution_hours || '-'}</td>
-                                                <td style={{ padding: '8px', border: '1px solid #27272a', fontWeight: 'bold' }}>{a.total_score}</td>
-                                                <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #27272a' }}>
-                                                    {a.SLA_Breach ? <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '2px 5px', borderRadius: '3px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><AlertTriangle size={10} /> Breached</span> : <span style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '2px 5px', borderRadius: '3px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><CheckCircle2 size={10} /> Safe</span>}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
+                                        <tr>
+                                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>ID</th>
+                                            <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Image</th>
+                                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Dept</th>
+                                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Status</th>
+                                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Assigned To</th>
+                                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Date Raised</th>
+                                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Deadline</th>
+                                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Total Age (Hrs)</th>
+                                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Res. Time (Hrs)</th>
+                                            <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Total Score</th>
+                                            <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>SLA Breach</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredAgeing.length === 0 ? (
+                                            <tr><td colSpan="11" style={{ textAlign: 'center', padding: '16px', color: '#71717a' }}>No records found.</td></tr>
+                                        ) : (
+                                            filteredAgeing.map(a => (
+                                                <tr key={a.ticket_id} onClick={() => handleTicketClick(a)} style={{ borderBottom: '1px solid #27272a', transition: 'background-color 0.2s', cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#18181b'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                                    <td style={{ padding: '8px', fontWeight: 'bold', border: '1px solid #27272a' }}>#{a.ticket_id}</td>
+                                                    <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #27272a' }}>
+                                                        {a.attachment && String(a.attachment).toLowerCase() !== 'nan' ? (
+                                                            <img src={String(a.attachment).startsWith('data:') ? String(a.attachment) : `http://localhost:5000/uploads/${a.attachment}`} style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #3f3f46' }} alt="Attachment" />
+                                                        ) : <span style={{ color: '#52525b' }}>-</span>}
+                                                    </td>
+                                                    <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.dept_assigned}</td>
+                                                    <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.status}</td>
+                                                    <td style={{ padding: '8px', color: '#60a5fa', border: '1px solid #27272a' }}>{formatSolverDetails(a.assigned_to)}</td>
+                                                    <td style={{ padding: '8px', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{a.timestamp}</td>
+                                                    <td style={{ padding: '8px', color: '#10b981', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{a.deadline || 'N/A'}</td>
+                                                    <td style={{ padding: '8px', fontWeight: 'bold', border: '1px solid #27272a' }}>{a.ticket_age_hours || '-'}</td>
+                                                    <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.solver_resolution_hours || '-'}</td>
+                                                    <td style={{ padding: '8px', border: '1px solid #27272a', fontWeight: 'bold' }}>{a.total_score}</td>
+                                                    <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #27272a' }}>
+                                                        {a.SLA_Breach ? <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '2px 5px', borderRadius: '3px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><AlertTriangle size={10} /> Breached</span> : <span style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '2px 5px', borderRadius: '3px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><CheckCircle2 size={10} /> Safe</span>}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
+                )}
+
+                {/* --- RATING REPORT TAB --- */}
+                {activeTab === 'ratings' && !loading && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className="card" style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        className="btn"
+                                        onClick={() => setRatingSubTab('requestor')}
+                                        style={{
+                                            backgroundColor: ratingSubTab === 'requestor' ? '#3b82f6' : '#27272a',
+                                            border: 'none',
+                                            fontSize: '11px',
+                                            padding: '6px 14px',
+                                            fontWeight: 'bold',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}>
+                                        <User size={13} /> Requestors ({requestorRatingsList.length})
+                                    </button>
+                                    <button
+                                        className="btn"
+                                        onClick={() => setRatingSubTab('solver')}
+                                        style={{
+                                            backgroundColor: ratingSubTab === 'solver' ? '#3b82f6' : '#27272a',
+                                            border: 'none',
+                                            fontSize: '11px',
+                                            padding: '6px 14px',
+                                            fontWeight: 'bold',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}>
+                                        <ShieldCheck size={13} /> Solvers ({solverRatingsList.length})
+                                    </button>
+                                </div>
+                                <div style={{ position: 'relative' }}>
+                                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder={`Search ${ratingSubTab === 'requestor' ? 'requestors' : 'solvers'}...`}
+                                        value={ratingSearchQuery}
+                                        onChange={(e) => setRatingSearchQuery(e.target.value)}
+                                        style={{ padding: '6px 10px 6px 30px', fontSize: '10px', width: '220px', margin: 0 }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="master-table-container" style={{ maxHeight: '520px', overflowY: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
+                                        <tr>
+                                            <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #27272a' }}>Emp ID</th>
+                                            <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #27272a' }}>Name</th>
+                                            <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #27272a' }}>Email</th>
+                                            <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #27272a' }}>Department</th>
+                                            <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #27272a' }}>Outlet</th>
+                                            <th style={{ padding: '10px', textAlign: 'center', border: '1px solid #27272a' }}>Ratings Received</th>
+                                            <th style={{ padding: '10px', textAlign: 'center', border: '1px solid #27272a' }}>Average Rating</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredRatingList.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#71717a' }}>No users found for this rating report.</td>
+                                            </tr>
+                                        ) : (
+                                            filteredRatingList.map(u => (
+                                                <tr key={u.email} style={{ borderBottom: '1px solid #27272a' }}>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a', fontFamily: 'monospace' }}>{u.employee_id || 'N/A'}</td>
+                                                    <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{u.name}</td>
+                                                    <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{u.email}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{u.department || 'N/A'}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{u.outlet || 'N/A'}</td>
+                                                    <td style={{ padding: '10px', textAlign: 'center', border: '1px solid #27272a' }}>
+                                                        <span style={{ backgroundColor: '#27272a', padding: '2px 6px', borderRadius: '4px' }}>
+                                                            {u.ratedCount} / {u.totalTickets} tickets
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '10px', textAlign: 'center', border: '1px solid #27272a', fontWeight: 'bold', color: u.avgRating ? '#f59e0b' : '#71717a' }}>
+                                                        {u.avgRating ? `${u.avgRating} ⭐` : 'Unrated'}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -646,9 +868,9 @@ const AdminDashboard = ({ user, setUser }) => {
                                     <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', textTransform: 'capitalize' }}>Import {activeImportTab}</h4>
                                     <p style={{ margin: 0, fontSize: '10px', color: '#71717a' }}>Ensure your Excel file follows the exact template structure.</p>
                                 </div>
-                                <a 
-                                    href={getImportTemplateUrl(activeImportTab)} 
-                                    className="btn" 
+                                <a
+                                    href={getImportTemplateUrl(activeImportTab)}
+                                    className="btn"
                                     style={{ backgroundColor: '#3b82f6', border: 'none', fontSize: '12px', padding: '6px 16px', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
                                 >
                                     <Download size={14} /> Download Template
@@ -660,11 +882,11 @@ const AdminDashboard = ({ user, setUser }) => {
 
                             <form onSubmit={handleFileUpload} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div style={{ border: '2px dashed #3f3f46', borderRadius: '8px', padding: '32px', textAlign: 'center', backgroundColor: '#18181b', transition: 'all 0.2s' }}>
-                                    <input 
-                                        type="file" 
-                                        accept=".xlsx" 
-                                        id="importFileInput" 
-                                        style={{ display: 'none' }} 
+                                    <input
+                                        type="file"
+                                        accept=".xlsx"
+                                        id="importFileInput"
+                                        style={{ display: 'none' }}
                                         onChange={(e) => setImportFile(e.target.files[0])}
                                     />
                                     <label htmlFor="importFileInput" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
@@ -703,327 +925,371 @@ const AdminDashboard = ({ user, setUser }) => {
                             <button className="btn" style={{ backgroundColor: activeMasterTab === 'departments' ? '#3b82f6' : 'transparent', border: activeMasterTab === 'departments' ? 'none' : '1px solid #3f3f46', fontSize: '12px', padding: '6px 16px' }} onClick={() => setActiveMasterTab('departments')}>Departments</button>
                             <button className="btn" style={{ backgroundColor: activeMasterTab === 'rules' ? '#3b82f6' : 'transparent', border: activeMasterTab === 'rules' ? 'none' : '1px solid #3f3f46', fontSize: '12px', padding: '6px 16px' }} onClick={() => setActiveMasterTab('rules')}>Master Logic Rules</button>
                         </div>
-                        
+
                         {/* USERS TAB */}
                         {activeMasterTab === 'users' && (
-                    <div className="card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
-                            <h3 style={{ margin: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>Global User Directory</h3>
-                            <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
-                                <input type="text" className="form-control" placeholder="🔍 Search users..." value={userSearchQuery} onChange={(e) => setUserSearchQuery(e.target.value)} style={{ padding: '6px 10px', fontSize: '10px', maxWidth: '240px', margin: 0 }} />
-                                <div style={{ position: 'relative' }}>
-                                    <button className="btn" onClick={() => setShowUserFilterDropdown(!showUserFilterDropdown)} style={{ backgroundColor: showUserFilterDropdown || activeUserFilters.length > 0 ? '#3b82f6' : '#27272a', padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}><Filter size={12} /> Filters</button>
-                                    {showUserFilterDropdown && (
-                                        <div className="filter-dropdown-menu">
-                                            {['role', 'department', 'name', 'emp_id', 'location'].map(f => (
-                                                <label key={f} className="filter-dropdown-label">
-                                                    <input type="checkbox" checked={activeUserFilters.includes(f)} onChange={(e) => {
-                                                        if (e.target.checked) setActiveUserFilters([...activeUserFilters, f]);
-                                                        else {
-                                                            setActiveUserFilters(activeUserFilters.filter(x => x !== f));
-                                                            setUserFilters({...userFilters, [f]: ''});
-                                                        }
-                                                    }} />
-                                                    {f.replace('_', ' ').toUpperCase()}
-                                                </label>
-                                            ))}
+                            <div className="card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
+                                    <h3 style={{ margin: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>Global User Directory</h3>
+                                    <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
+                                            <input type="text" className="form-control" placeholder="Search users..." value={userSearchQuery} onChange={(e) => setUserSearchQuery(e.target.value)} style={{ padding: '6px 10px 6px 30px', fontSize: '10px', maxWidth: '240px', margin: 0 }} />
                                         </div>
-                                    )}
-                                </div>
-                                {user?.role !== 'Audit' && (
-                                    <div className="action-btn-group" style={{ display: 'flex', gap: '5px' }}>
-                                        {selectedUserRow && (
-                                            <>
-                                                <button className="btn btn-filter" style={{ padding: '6px 13px', fontSize: '10px' }} onClick={() => openUserModal('edit', selectedUserRow)}>Edit User</button>
-                                                {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
-                                                    <button className="btn" title="Reset Password" style={{ padding: '6px 13px', fontSize: '10px', backgroundColor: '#3f3f46', display: 'flex', alignItems: 'center' }} onClick={() => handleResetPassword(selectedUserRow.employee_id)}><Key size={12} /></button>
-                                                )}
-                                                {user?.role === 'Super Admin' && (
-                                                    <button className="btn" style={{ padding: '6px 13px', fontSize: '10px', backgroundColor: '#ef4444' }} onClick={() => { handleDeleteUser(selectedUserRow.employee_id); setSelectedUserRow(null); }}>Delete User</button>
-                                                )}
-                                            </>
-                                        )}
-                                        <button className="btn" onClick={() => openUserModal('add')} style={{ backgroundColor: '#10b981', padding: '6px 13px', fontSize: '10px', whiteSpace: 'nowrap' }}>+ Add Employee</button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        {activeUserFilters.length > 0 && (
-                            <div className="active-filters-bar">
-                                {activeUserFilters.includes('role') && (
-                                    <select value={userFilters.role} onChange={(e) => setUserFilters({...userFilters, role: e.target.value})} className="active-filters-input">
-                                        <option value="">All Roles</option>
-                                        {[...new Set(usersList.map(u => u.role).filter(Boolean))].map(r => <option key={r} value={r}>{r}</option>)}
-                                    </select>
-                                )}
-                                {activeUserFilters.includes('department') && (
-                                    <select value={userFilters.department} onChange={(e) => setUserFilters({...userFilters, department: e.target.value})} className="active-filters-input">
-                                        <option value="">All Departments</option>
-                                        {[...new Set(usersList.map(u => u.department).filter(Boolean))].map(d => <option key={d} value={d}>{d}</option>)}
-                                    </select>
-                                )}
-                                {activeUserFilters.includes('name') && (
-                                    <input type="text" placeholder="Filter by Name..." value={userFilters.name} onChange={(e) => setUserFilters({...userFilters, name: e.target.value})} className="active-filters-input" />
-                                )}
-                                {activeUserFilters.includes('emp_id') && (
-                                    <input type="text" placeholder="Filter by Emp ID..." value={userFilters.emp_id} onChange={(e) => setUserFilters({...userFilters, emp_id: e.target.value})} className="active-filters-input" />
-                                )}
-                                {activeUserFilters.includes('location') && (
-                                    <input type="text" placeholder="Filter by Location/Outlet..." value={userFilters.location} onChange={(e) => setUserFilters({...userFilters, location: e.target.value})} className="active-filters-input" />
-                                )}
-                                <button onClick={() => {setActiveUserFilters([]); setUserFilters(defaultUserFilters); setShowUserFilterDropdown(false);}} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: 'auto' }}><X size={10} /> Clear All Filters</button>
-                            </div>
-                        )}
-                        <div className="master-table-container" style={{ maxHeight: '480px', overflowY: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
-                                    <tr>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Emp ID</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Name</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Email</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Role</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Dept</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Manager</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredUsers.map(u => (
-                                        <tr key={u.email} style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', backgroundColor: selectedUserRow?.employee_id === u.employee_id ? 'rgba(59, 130, 246, 0.15)' : 'transparent' }} onMouseOver={(e) => { if (selectedUserRow?.employee_id !== u.employee_id) e.currentTarget.style.backgroundColor = '#18181b'; }} onMouseOut={(e) => { if (selectedUserRow?.employee_id !== u.employee_id) e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => setSelectedUserRow(prev => prev?.employee_id === u.employee_id ? null : u)}>
-                                            <td style={{ padding: '10px', border: '1px solid #27272a' }}>{u.employee_id}</td>
-                                            <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{u.name}</td>
-                                            <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{u.email}</td>
-                                            <td style={{ padding: '10px', border: '1px solid #27272a' }}><span style={{ backgroundColor: u.role === 'Admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: u.role === 'Admin' ? '#ef4444' : '#60a5fa', padding: '2px 5px', borderRadius: '3px', fontSize: '10px' }}>{u.role}</span></td>
-                                            <td style={{ padding: '10px', border: '1px solid #27272a' }}>{u.department}</td>
-                                            <td style={{ padding: '10px', color: '#10b981', fontSize: '10px', border: '1px solid #27272a' }}>{getManagerDisplay(u.manager)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-
-                {/* LOCATIONS TAB */}
-                {activeMasterTab === 'locations' && (
-                    <div className="card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
-                            <h3 style={{ margin: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>Locations & Outlets</h3>
-                            <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
-                                <input type="text" className="form-control" placeholder="🔍 Search locations..." value={locSearchQuery} onChange={(e) => setLocSearchQuery(e.target.value)} style={{ padding: '6px 10px', fontSize: '10px', maxWidth: '240px', margin: 0 }} />
-                                <div style={{ position: 'relative' }}>
-                                    <button className="btn" onClick={() => setShowLocFilterDropdown(!showLocFilterDropdown)} style={{ backgroundColor: showLocFilterDropdown || activeLocFilters.length > 0 ? '#3b82f6' : '#27272a', padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}><Filter size={12} /> Filters</button>
-                                    {showLocFilterDropdown && (
-                                        <div className="filter-dropdown-menu">
-                                            {['brand', 'city', 'location', 'code'].map(f => (
-                                                <label key={f} className="filter-dropdown-label">
-                                                    <input type="checkbox" checked={activeLocFilters.includes(f)} onChange={(e) => {
-                                                        if (e.target.checked) setActiveLocFilters([...activeLocFilters, f]);
-                                                        else {
-                                                            setActiveLocFilters(activeLocFilters.filter(x => x !== f));
-                                                            setLocFilters({...locFilters, [f]: ''});
-                                                        }
-                                                    }} />
-                                                    {f.replace('_', ' ').toUpperCase()}
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                {user?.role !== 'Audit' && (
-                                    <div className="action-btn-group" style={{ display: 'flex', gap: '5px' }}>
-                                        {selectedLocRow && (
-                                            <>
-                                                <button className="btn btn-filter" style={{ padding: '6px 13px', fontSize: '10px' }} onClick={() => openLocModal('edit', selectedLocRow)}>Edit Outlet</button>
-                                                {user?.role === 'Super Admin' && (
-                                                    <button className="btn" style={{ padding: '6px 13px', fontSize: '10px', backgroundColor: '#ef4444' }} onClick={() => { handleDeleteLocation(selectedLocRow.outlet); setSelectedLocRow(null); }}>Delete Outlet</button>
-                                                )}
-                                            </>
-                                        )}
-                                        <button className="btn" onClick={() => openLocModal('add')} style={{ backgroundColor: '#10b981', padding: '6px 13px', fontSize: '10px', whiteSpace: 'nowrap' }}>+ Add Outlet</button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        {activeLocFilters.length > 0 && (
-                            <div className="active-filters-bar">
-                                {activeLocFilters.includes('brand') && (
-                                    <select value={locFilters.brand} onChange={(e) => setLocFilters({...locFilters, brand: e.target.value})} className="active-filters-input">
-                                        <option value="">All Brands</option>
-                                        {[...new Set(locationsList.map(l => l.brand).filter(Boolean))].map(b => <option key={b} value={b}>{b}</option>)}
-                                    </select>
-                                )}
-                                {activeLocFilters.includes('city') && (
-                                    <select value={locFilters.city} onChange={(e) => setLocFilters({...locFilters, city: e.target.value})} className="active-filters-input">
-                                        <option value="">All Cities</option>
-                                        {[...new Set(locationsList.map(l => l.city).filter(Boolean))].map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                )}
-                                {activeLocFilters.includes('location') && (
-                                    <input type="text" placeholder="Filter by Location..." value={locFilters.location} onChange={(e) => setLocFilters({...locFilters, location: e.target.value})} className="active-filters-input" />
-                                )}
-                                {activeLocFilters.includes('code') && (
-                                    <input type="text" placeholder="Filter by Code..." value={locFilters.code} onChange={(e) => setLocFilters({...locFilters, code: e.target.value})} className="active-filters-input" />
-                                )}
-                                <button onClick={() => {setActiveLocFilters([]); setLocFilters(defaultLocFilters); setShowLocFilterDropdown(false);}} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: 'auto' }}><X size={10} /> Clear All Filters</button>
-                            </div>
-                        )}
-                        <div className="master-table-container" style={{ maxHeight: '480px', overflowY: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
-                                    <tr>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Code</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Brand</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Location</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>City</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredLocations.map(loc => (
-                                        <tr key={loc.outlet} style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', backgroundColor: selectedLocRow?.outlet === loc.outlet ? 'rgba(59, 130, 246, 0.15)' : 'transparent' }} onMouseOver={(e) => { if (selectedLocRow?.outlet !== loc.outlet) e.currentTarget.style.backgroundColor = '#18181b'; }} onMouseOut={(e) => { if (selectedLocRow?.outlet !== loc.outlet) e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => setSelectedLocRow(prev => prev?.outlet === loc.outlet ? null : loc)}>
-                                            <td style={{ padding: '10px', fontWeight: 'bold', color: '#60a5fa', border: '1px solid #27272a' }}>{loc.outlet}</td>
-                                            <td style={{ padding: '10px', border: '1px solid #27272a' }}>{loc.brand}</td>
-                                            <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{loc.location}</td>
-                                            <td style={{ padding: '10px', color: '#71717a', border: '1px solid #27272a' }}>{loc.city}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-
-                {/* DEPARTMENTS TAB */}
-                {activeMasterTab === 'departments' && (
-                    <div className="card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
-                            <h3 style={{ margin: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>Departments Master</h3>
-                            <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
-                                <input type="text" className="form-control" placeholder="🔍 Search departments..." value={deptSearchQuery} onChange={(e) => setDeptSearchQuery(e.target.value)} style={{ padding: '6px 10px', fontSize: '10px', maxWidth: '240px', margin: 0 }} />
-                                <div className="action-btn-group" style={{ display: 'flex', gap: '5px' }}>
-                                    {selectedDeptRow && (
-                                        <>
-                                            <button className="btn btn-filter" style={{ padding: '6px 13px', fontSize: '10px' }} onClick={() => openDeptModal('edit', selectedDeptRow.department_name)}>Edit Department</button>
-                                            {user?.role === 'Super Admin' && (
-                                                <button className="btn" style={{ padding: '6px 13px', fontSize: '10px', backgroundColor: '#ef4444' }} onClick={() => { handleDeleteDepartment(selectedDeptRow.department_name); setSelectedDeptRow(null); }}>Delete Department</button>
+                                        <div style={{ position: 'relative' }}>
+                                            <button className="btn" onClick={() => setShowUserFilterDropdown(!showUserFilterDropdown)} style={{ backgroundColor: showUserFilterDropdown || activeUserFilters.length > 0 ? '#3b82f6' : '#27272a', padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}><Filter size={12} /> Filters</button>
+                                            {showUserFilterDropdown && (
+                                                <div className="filter-dropdown-menu">
+                                                    {['role', 'department', 'name', 'emp_id', 'location'].map(f => (
+                                                        <label key={f} className="filter-dropdown-label">
+                                                            <input type="checkbox" checked={activeUserFilters.includes(f)} onChange={(e) => {
+                                                                if (e.target.checked) setActiveUserFilters([...activeUserFilters, f]);
+                                                                else {
+                                                                    setActiveUserFilters(activeUserFilters.filter(x => x !== f));
+                                                                    setUserFilters({ ...userFilters, [f]: '' });
+                                                                }
+                                                            }} />
+                                                            {f.replace('_', ' ').toUpperCase()}
+                                                        </label>
+                                                    ))}
+                                                </div>
                                             )}
-                                        </>
-                                    )}
-                                    <button className="btn" onClick={() => openDeptModal('add')} style={{ backgroundColor: '#10b981', padding: '6px 13px', fontSize: '10px', whiteSpace: 'nowrap' }}>+ Add Department</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="master-table-container" style={{ maxHeight: '480px', overflowY: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
-                                    <tr>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Department Name</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredDepartments.map(d => (
-                                        <tr key={d.department_name} style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', backgroundColor: selectedDeptRow?.department_name === d.department_name ? 'rgba(59, 130, 246, 0.15)' : 'transparent' }} onMouseOver={(e) => { if (selectedDeptRow?.department_name !== d.department_name) e.currentTarget.style.backgroundColor = '#18181b'; }} onMouseOut={(e) => { if (selectedDeptRow?.department_name !== d.department_name) e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => setSelectedDeptRow(prev => prev?.department_name === d.department_name ? null : d)}>
-                                            <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{d.department_name}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-
-                {/* MASTER RULES TAB */}
-                {activeMasterTab === 'rules' && (
-                    <div className="card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
-                            <h3 style={{ margin: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>Master Assignment Logic</h3>
-                            <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
-                                <input type="text" className="form-control" placeholder="🔍 Search rules (Dept, Issue, Location)..." value={ruleSearchQuery} onChange={(e) => setRuleSearchQuery(e.target.value)} style={{ padding: '6px 10px', fontSize: '10px', maxWidth: '240px', margin: 0 }} />
-                                <div style={{ position: 'relative' }}>
-                                    <button className="btn" onClick={() => setShowRuleFilterDropdown(!showRuleFilterDropdown)} style={{ backgroundColor: showRuleFilterDropdown || activeRuleFilters.length > 0 ? '#3b82f6' : '#27272a', padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}><Filter size={12} /> Filters</button>
-                                    {showRuleFilterDropdown && (
-                                        <div className="filter-dropdown-menu">
-                                            {['department', 'issue_type', 'assigned_solver', 'location'].map(f => (
-                                                <label key={f} className="filter-dropdown-label">
-                                                    <input type="checkbox" checked={activeRuleFilters.includes(f)} onChange={(e) => {
-                                                        if (e.target.checked) setActiveRuleFilters([...activeRuleFilters, f]);
-                                                        else {
-                                                            setActiveRuleFilters(activeRuleFilters.filter(x => x !== f));
-                                                            setRuleFilters({...ruleFilters, [f]: ''});
-                                                        }
-                                                    }} />
-                                                    {f.replace('_', ' ').toUpperCase()}
-                                                </label>
-                                            ))}
                                         </div>
-                                    )}
-                                </div>
-                                {user?.role !== 'Audit' && (
-                                    <div className="action-btn-group" style={{ display: 'flex', gap: '5px' }}>
-                                        {selectedRuleRow && (
-                                            <>
-                                                <button className="btn btn-filter" style={{ padding: '6px 13px', fontSize: '10px' }} onClick={() => openRuleModal('edit', selectedRuleRow)}>Edit Rule</button>
-                                                {user?.role === 'Super Admin' && (
-                                                    <button className="btn" style={{ padding: '6px 13px', fontSize: '10px', backgroundColor: '#ef4444' }} onClick={() => { handleDeleteRule(selectedRuleRow.department, selectedRuleRow.issue_type); setSelectedRuleRow(null); }}>Delete Rule</button>
-                                                )}
-                                            </>
+                                        {user?.role !== 'Audit' && (
+                                            <div className="action-btn-group" style={{ display: 'flex', gap: '5px' }}>
+                                                <button className="btn" onClick={() => openUserModal('add')} style={{ backgroundColor: '#10b981', padding: '6px 13px', fontSize: '10px', whiteSpace: 'nowrap' }}>+ Add Employee</button>
+                                            </div>
                                         )}
-                                        <button className="btn" onClick={() => openRuleModal('add')} style={{ backgroundColor: '#10b981', padding: '6px 13px', fontSize: '10px', whiteSpace: 'nowrap' }}>+ Add New Rule</button>
+                                    </div>
+                                </div>
+                                {activeUserFilters.length > 0 && (
+                                    <div className="active-filters-bar">
+                                        {activeUserFilters.includes('role') && (
+                                            <select value={userFilters.role} onChange={(e) => setUserFilters({ ...userFilters, role: e.target.value })} className="active-filters-input">
+                                                <option value="">All Roles</option>
+                                                {[...new Set(usersList.map(u => u.role).filter(Boolean))].map(r => <option key={r} value={r}>{r}</option>)}
+                                            </select>
+                                        )}
+                                        {activeUserFilters.includes('department') && (
+                                            <select value={userFilters.department} onChange={(e) => setUserFilters({ ...userFilters, department: e.target.value })} className="active-filters-input">
+                                                <option value="">All Departments</option>
+                                                {[...new Set(usersList.map(u => u.department).filter(Boolean))].map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                        )}
+                                        {activeUserFilters.includes('name') && (
+                                            <input type="text" placeholder="Filter by Name..." value={userFilters.name} onChange={(e) => setUserFilters({ ...userFilters, name: e.target.value })} className="active-filters-input" />
+                                        )}
+                                        {activeUserFilters.includes('emp_id') && (
+                                            <input type="text" placeholder="Filter by Emp ID..." value={userFilters.emp_id} onChange={(e) => setUserFilters({ ...userFilters, emp_id: e.target.value })} className="active-filters-input" />
+                                        )}
+                                        {activeUserFilters.includes('location') && (
+                                            <input type="text" placeholder="Filter by Location/Outlet..." value={userFilters.location} onChange={(e) => setUserFilters({ ...userFilters, location: e.target.value })} className="active-filters-input" />
+                                        )}
+                                        <button onClick={() => { setActiveUserFilters([]); setUserFilters(defaultUserFilters); setShowUserFilterDropdown(false); }} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: 'auto' }}><X size={10} /> Clear All Filters</button>
                                     </div>
                                 )}
-                            </div>
-                        </div>
-                        {activeRuleFilters.length > 0 && (
-                            <div className="active-filters-bar">
-                                {activeRuleFilters.includes('department') && (
-                                    <select value={ruleFilters.department} onChange={(e) => setRuleFilters({...ruleFilters, department: e.target.value})} className="active-filters-input">
-                                        <option value="">All Departments</option>
-                                        {[...new Set(rulesList.map(r => r.department).filter(Boolean))].map(d => <option key={d} value={d}>{d}</option>)}
-                                    </select>
-                                )}
-                                {activeRuleFilters.includes('issue_type') && (
-                                    <select value={ruleFilters.issue_type} onChange={(e) => setRuleFilters({...ruleFilters, issue_type: e.target.value})} className="active-filters-input">
-                                        <option value="">All Issues</option>
-                                        {[...new Set(rulesList.map(r => r.issue_type).filter(Boolean))].map(i => <option key={i} value={i}>{i}</option>)}
-                                    </select>
-                                )}
-                                {activeRuleFilters.includes('assigned_solver') && (
-                                    <input type="text" placeholder="Filter by Solver..." value={ruleFilters.assigned_solver} onChange={(e) => setRuleFilters({...ruleFilters, assigned_solver: e.target.value})} className="active-filters-input" />
-                                )}
-                                {activeRuleFilters.includes('location') && (
-                                    <input type="text" placeholder="Filter by Location..." value={ruleFilters.location} onChange={(e) => setRuleFilters({...ruleFilters, location: e.target.value})} className="active-filters-input" />
-                                )}
-                                <button onClick={() => {setActiveRuleFilters([]); setRuleFilters(defaultRuleFilters); setShowRuleFilterDropdown(false);}} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: 'auto' }}><X size={10} /> Clear All Filters</button>
+                                <div className="master-table-container" style={{ maxHeight: '480px', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                                        <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
+                                            <tr>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Emp ID</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Name</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Email</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Role</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Dept</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Outlet</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Manager</th>
+                                                {user?.role !== 'Audit' && <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Actions</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredUsers.map(u => (
+                                                <tr key={u.email} style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', backgroundColor: selectedUserRow?.employee_id === u.employee_id ? 'rgba(59, 130, 246, 0.15)' : 'transparent' }} onMouseOver={(e) => { if (selectedUserRow?.employee_id !== u.employee_id) e.currentTarget.style.backgroundColor = '#18181b'; }} onMouseOut={(e) => { if (selectedUserRow?.employee_id !== u.employee_id) e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => setSelectedUserRow(prev => prev?.employee_id === u.employee_id ? null : u)}>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{u.employee_id}</td>
+                                                    <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{u.name}</td>
+                                                    <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{u.email}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}><span style={{ backgroundColor: u.role === 'Admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: u.role === 'Admin' ? '#ef4444' : '#60a5fa', padding: '2px 5px', borderRadius: '3px', fontSize: '10px' }}>{u.role}</span></td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{u.department}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{u.outlet}</td>
+                                                    <td style={{ padding: '10px', color: '#10b981', fontSize: '10px', border: '1px solid #27272a' }}>{getManagerDisplay(u.manager)}</td>
+                                                    {user?.role !== 'Audit' && (
+                                                        <td style={{ padding: '10px', border: '1px solid #27272a', textAlign: 'center' }}>
+                                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                                <button title="Edit User" style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); openUserModal('edit', u); }}>
+                                                                    <Pen size={14} />
+                                                                </button>
+                                                                {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
+                                                                    <button title="Reset Password" style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); handleResetPassword(u.employee_id); }}>
+                                                                        <Key size={14} />
+                                                                    </button>
+                                                                )}
+                                                                {user?.role === 'Super Admin' && (
+                                                                    <button title="Delete User" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); handleDeleteUser(u.employee_id); }}>
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         )}
-                        <div className="master-table-container" style={{ maxHeight: '480px', overflowY: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
-                                <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#18181b' }}>
-                                    <tr>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Dept</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Issue Type</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Location</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Priority</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Deadline</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Assigned Solver(s)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredRules.map((r, idx) => (
-                                        <tr key={idx} style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', backgroundColor: (selectedRuleRow?.department === r.department && selectedRuleRow?.issue_type === r.issue_type) ? 'rgba(59, 130, 246, 0.15)' : 'transparent' }} onMouseOver={(e) => { if (!(selectedRuleRow?.department === r.department && selectedRuleRow?.issue_type === r.issue_type)) e.currentTarget.style.backgroundColor = '#18181b'; }} onMouseOut={(e) => { if (!(selectedRuleRow?.department === r.department && selectedRuleRow?.issue_type === r.issue_type)) e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => setSelectedRuleRow(prev => (prev?.department === r.department && prev?.issue_type === r.issue_type) ? null : r)}>
-                                            <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.department}</td>
-                                            <td style={{ padding: '10px', border: '1px solid #27272a' }}>{r.issue_type}</td>
-                                            <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{r.outlet && String(r.outlet).toLowerCase() !== 'nan' ? r.outlet : 'Global (All)'}</td>
-                                            <td style={{ padding: '10px', border: '1px solid #27272a' }}>{r.base_priority}</td>
-                                            <td style={{ padding: '10px', color: '#10b981', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.deadline_hours || 24} Hrs</td>
-                                            <td style={{ padding: '10px', color: '#60a5fa', border: '1px solid #27272a' }}>{formatSolverDetails(r.assigned_solver)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+
+                        {/* LOCATIONS TAB */}
+                        {activeMasterTab === 'locations' && (
+                            <div className="card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
+                                    <h3 style={{ margin: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>Locations & Outlets</h3>
+                                    <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
+                                            <input type="text" className="form-control" placeholder="Search locations..." value={locSearchQuery} onChange={(e) => setLocSearchQuery(e.target.value)} style={{ padding: '6px 10px 6px 30px', fontSize: '10px', maxWidth: '240px', margin: 0 }} />
+                                        </div>
+                                        <div style={{ position: 'relative' }}>
+                                            <button className="btn" onClick={() => setShowLocFilterDropdown(!showLocFilterDropdown)} style={{ backgroundColor: showLocFilterDropdown || activeLocFilters.length > 0 ? '#3b82f6' : '#27272a', padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}><Filter size={12} /> Filters</button>
+                                            {showLocFilterDropdown && (
+                                                <div className="filter-dropdown-menu">
+                                                    {['brand', 'city', 'location', 'code'].map(f => (
+                                                        <label key={f} className="filter-dropdown-label">
+                                                            <input type="checkbox" checked={activeLocFilters.includes(f)} onChange={(e) => {
+                                                                if (e.target.checked) setActiveLocFilters([...activeLocFilters, f]);
+                                                                else {
+                                                                    setActiveLocFilters(activeLocFilters.filter(x => x !== f));
+                                                                    setLocFilters({ ...locFilters, [f]: '' });
+                                                                }
+                                                            }} />
+                                                            {f.replace('_', ' ').toUpperCase()}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {user?.role !== 'Audit' && (
+                                            <div className="action-btn-group" style={{ display: 'flex', gap: '5px' }}>
+                                                <button className="btn" onClick={() => openLocModal('add')} style={{ backgroundColor: '#10b981', padding: '6px 13px', fontSize: '10px', whiteSpace: 'nowrap' }}>+ Add Outlet</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                {activeLocFilters.length > 0 && (
+                                    <div className="active-filters-bar">
+                                        {activeLocFilters.includes('brand') && (
+                                            <select value={locFilters.brand} onChange={(e) => setLocFilters({ ...locFilters, brand: e.target.value })} className="active-filters-input">
+                                                <option value="">All Brands</option>
+                                                {[...new Set(locationsList.map(l => l.brand).filter(Boolean))].map(b => <option key={b} value={b}>{b}</option>)}
+                                            </select>
+                                        )}
+                                        {activeLocFilters.includes('city') && (
+                                            <select value={locFilters.city} onChange={(e) => setLocFilters({ ...locFilters, city: e.target.value })} className="active-filters-input">
+                                                <option value="">All Cities</option>
+                                                {[...new Set(locationsList.map(l => l.city).filter(Boolean))].map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        )}
+                                        {activeLocFilters.includes('location') && (
+                                            <input type="text" placeholder="Filter by Location..." value={locFilters.location} onChange={(e) => setLocFilters({ ...locFilters, location: e.target.value })} className="active-filters-input" />
+                                        )}
+                                        {activeLocFilters.includes('code') && (
+                                            <input type="text" placeholder="Filter by Code..." value={locFilters.code} onChange={(e) => setLocFilters({ ...locFilters, code: e.target.value })} className="active-filters-input" />
+                                        )}
+                                        <button onClick={() => { setActiveLocFilters([]); setLocFilters(defaultLocFilters); setShowLocFilterDropdown(false); }} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: 'auto' }}><X size={10} /> Clear All Filters</button>
+                                    </div>
+                                )}
+                                <div className="master-table-container" style={{ maxHeight: '480px', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                                        <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
+                                            <tr>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Code</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Brand</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Location</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>City</th>
+                                                {user?.role !== 'Audit' && <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Actions</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredLocations.map(loc => (
+                                                <tr key={loc.outlet} style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', backgroundColor: selectedLocRow?.outlet === loc.outlet ? 'rgba(59, 130, 246, 0.15)' : 'transparent' }} onMouseOver={(e) => { if (selectedLocRow?.outlet !== loc.outlet) e.currentTarget.style.backgroundColor = '#18181b'; }} onMouseOut={(e) => { if (selectedLocRow?.outlet !== loc.outlet) e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => setSelectedLocRow(prev => prev?.outlet === loc.outlet ? null : loc)}>
+                                                    <td style={{ padding: '10px', fontWeight: 'bold', color: '#60a5fa', border: '1px solid #27272a' }}>{loc.outlet}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{loc.brand}</td>
+                                                    <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{loc.location}</td>
+                                                    <td style={{ padding: '10px', color: '#71717a', border: '1px solid #27272a' }}>{loc.city}</td>
+                                                    {user?.role !== 'Audit' && (
+                                                        <td style={{ padding: '10px', border: '1px solid #27272a', textAlign: 'center' }}>
+                                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                                <button title="Edit Outlet" style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); openLocModal('edit', loc); }}>
+                                                                    <Pen size={14} />
+                                                                </button>
+                                                                {user?.role === 'Super Admin' && (
+                                                                    <button title="Delete Outlet" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); handleDeleteLocation(loc.outlet); }}>
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* DEPARTMENTS TAB */}
+                        {activeMasterTab === 'departments' && (
+                            <div className="card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
+                                    <h3 style={{ margin: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>Departments Master</h3>
+                                    <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
+                                            <input type="text" className="form-control" placeholder="Search departments..." value={deptSearchQuery} onChange={(e) => setDeptSearchQuery(e.target.value)} style={{ padding: '6px 10px 6px 30px', fontSize: '10px', maxWidth: '240px', margin: 0 }} />
+                                        </div>
+                                        <div className="action-btn-group" style={{ display: 'flex', gap: '5px' }}>
+                                            <button className="btn" onClick={() => openDeptModal('add')} style={{ backgroundColor: '#10b981', padding: '6px 13px', fontSize: '10px', whiteSpace: 'nowrap' }}>+ Add Department</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="master-table-container" style={{ maxHeight: '480px', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                                        <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
+                                            <tr>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Department Name</th>
+                                                {user?.role !== 'Audit' && <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Actions</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredDepartments.map(d => (
+                                                <tr key={d.department_name} style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', backgroundColor: selectedDeptRow?.department_name === d.department_name ? 'rgba(59, 130, 246, 0.15)' : 'transparent' }} onMouseOver={(e) => { if (selectedDeptRow?.department_name !== d.department_name) e.currentTarget.style.backgroundColor = '#18181b'; }} onMouseOut={(e) => { if (selectedDeptRow?.department_name !== d.department_name) e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => setSelectedDeptRow(prev => prev?.department_name === d.department_name ? null : d)}>
+                                                    <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{d.department_name}</td>
+                                                    {user?.role !== 'Audit' && (
+                                                        <td style={{ padding: '10px', border: '1px solid #27272a', textAlign: 'center' }}>
+                                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                                <button title="Edit Department" style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); openDeptModal('edit', d.department_name); }}>
+                                                                    <Pen size={14} />
+                                                                </button>
+                                                                {user?.role === 'Super Admin' && (
+                                                                    <button title="Delete Department" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(d.department_name); }}>
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MASTER RULES TAB */}
+                        {activeMasterTab === 'rules' && (
+                            <div className="card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
+                                    <h3 style={{ margin: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>Master Assignment Logic</h3>
+                                    <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
+                                            <input type="text" className="form-control" placeholder="Search rules (Dept, Issue, Location)..." value={ruleSearchQuery} onChange={(e) => setRuleSearchQuery(e.target.value)} style={{ padding: '6px 10px 6px 30px', fontSize: '10px', maxWidth: '240px', margin: 0 }} />
+                                        </div>
+                                        <div style={{ position: 'relative' }}>
+                                            <button className="btn" onClick={() => setShowRuleFilterDropdown(!showRuleFilterDropdown)} style={{ backgroundColor: showRuleFilterDropdown || activeRuleFilters.length > 0 ? '#3b82f6' : '#27272a', padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}><Filter size={12} /> Filters</button>
+                                            {showRuleFilterDropdown && (
+                                                <div className="filter-dropdown-menu">
+                                                    {['department', 'issue_type', 'assigned_solver', 'location'].map(f => (
+                                                        <label key={f} className="filter-dropdown-label">
+                                                            <input type="checkbox" checked={activeRuleFilters.includes(f)} onChange={(e) => {
+                                                                if (e.target.checked) setActiveRuleFilters([...activeRuleFilters, f]);
+                                                                else {
+                                                                    setActiveRuleFilters(activeRuleFilters.filter(x => x !== f));
+                                                                    setRuleFilters({ ...ruleFilters, [f]: '' });
+                                                                }
+                                                            }} />
+                                                            {f.replace('_', ' ').toUpperCase()}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {user?.role !== 'Audit' && (
+                                            <div className="action-btn-group" style={{ display: 'flex', gap: '5px' }}>
+                                                <button className="btn" onClick={() => openRuleModal('add')} style={{ backgroundColor: '#10b981', padding: '6px 13px', fontSize: '10px', whiteSpace: 'nowrap' }}>+ Add New Rule</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                {activeRuleFilters.length > 0 && (
+                                    <div className="active-filters-bar">
+                                        {activeRuleFilters.includes('department') && (
+                                            <select value={ruleFilters.department} onChange={(e) => setRuleFilters({ ...ruleFilters, department: e.target.value })} className="active-filters-input">
+                                                <option value="">All Departments</option>
+                                                {[...new Set(rulesList.map(r => r.department).filter(Boolean))].map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                        )}
+                                        {activeRuleFilters.includes('issue_type') && (
+                                            <select value={ruleFilters.issue_type} onChange={(e) => setRuleFilters({ ...ruleFilters, issue_type: e.target.value })} className="active-filters-input">
+                                                <option value="">All Issues</option>
+                                                {[...new Set(rulesList.map(r => r.issue_type).filter(Boolean))].map(i => <option key={i} value={i}>{i}</option>)}
+                                            </select>
+                                        )}
+                                        {activeRuleFilters.includes('assigned_solver') && (
+                                            <input type="text" placeholder="Filter by Solver..." value={ruleFilters.assigned_solver} onChange={(e) => setRuleFilters({ ...ruleFilters, assigned_solver: e.target.value })} className="active-filters-input" />
+                                        )}
+                                        {activeRuleFilters.includes('location') && (
+                                            <input type="text" placeholder="Filter by Location..." value={ruleFilters.location} onChange={(e) => setRuleFilters({ ...ruleFilters, location: e.target.value })} className="active-filters-input" />
+                                        )}
+                                        <button onClick={() => { setActiveRuleFilters([]); setRuleFilters(defaultRuleFilters); setShowRuleFilterDropdown(false); }} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: 'auto' }}><X size={10} /> Clear All Filters</button>
+                                    </div>
+                                )}
+                                <div className="master-table-container" style={{ maxHeight: '480px', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                                        <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#18181b' }}>
+                                            <tr>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Dept</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Issue Type</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Location</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Priority</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Deadline</th>
+                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Assigned Solver(s)</th>
+                                                {user?.role !== 'Audit' && <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Actions</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredRules.map((r, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', backgroundColor: (selectedRuleRow?.department === r.department && selectedRuleRow?.issue_type === r.issue_type) ? 'rgba(59, 130, 246, 0.15)' : 'transparent' }} onMouseOver={(e) => { if (!(selectedRuleRow?.department === r.department && selectedRuleRow?.issue_type === r.issue_type)) e.currentTarget.style.backgroundColor = '#18181b'; }} onMouseOut={(e) => { if (!(selectedRuleRow?.department === r.department && selectedRuleRow?.issue_type === r.issue_type)) e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => setSelectedRuleRow(prev => (prev?.department === r.department && prev?.issue_type === r.issue_type) ? null : r)}>
+                                                    <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.department}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{r.issue_type}</td>
+                                                    <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{r.outlet && String(r.outlet).toLowerCase() !== 'nan' ? r.outlet : 'Global (All)'}</td>
+                                                    <td style={{ padding: '10px', border: '1px solid #27272a' }}>{r.base_priority}</td>
+                                                    <td style={{ padding: '10px', color: '#10b981', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.deadline_hours || 24} Hrs</td>
+                                                    <td style={{ padding: '10px', color: '#60a5fa', border: '1px solid #27272a' }}>{formatSolverDetails(r.assigned_solver)}</td>
+                                                    {user?.role !== 'Audit' && (
+                                                        <td style={{ padding: '10px', border: '1px solid #27272a', textAlign: 'center' }}>
+                                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                                <button title="Edit Rule" style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); openRuleModal('edit', r); }}>
+                                                                    <Pen size={14} />
+                                                                </button>
+                                                                {user?.role === 'Super Admin' && (
+                                                                    <button title="Delete Rule" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); handleDeleteRule(r.department, r.issue_type); }}>
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
-                </div>
                 )}
 
                 {/* DATALISTS FOR NATIVE SEARCHABLE DROPDOWNS */}
@@ -1047,18 +1313,37 @@ const AdminDashboard = ({ user, setUser }) => {
                                 <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>{userModalMode === 'add' ? 'Register New Employee' : 'Edit Employee Details'}</h3>
                                 <form onSubmit={handleUserSubmit}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                                        <input type="text" className="form-control" required disabled={userModalMode === 'edit'} placeholder="Employee ID" value={userFormData.employee_id} onChange={e => setUserFormData({ ...userFormData, employee_id: e.target.value })} style={{ backgroundColor: userModalMode === 'edit' ? '#09090b' : '#18181b', fontSize: '10px', padding: '8px' }} />
+                                        <input type="text" className="form-control" required placeholder="Employee ID" value={userFormData.employee_id} onChange={e => setUserFormData({ ...userFormData, employee_id: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
                                         <input type="email" className="form-control" required placeholder="Email Address" value={userFormData.email} onChange={e => setUserFormData({ ...userFormData, email: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px', marginBottom: '12px' }}>
                                         <input type="text" className="form-control" required placeholder="Full Name" value={userFormData.name} onChange={e => setUserFormData({ ...userFormData, name: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
-                                        <input type="text" className="form-control" required placeholder="Phone Number" value={userFormData.phone || ''} onChange={e => setUserFormData({ ...userFormData, phone: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
+                                        <input type="text" className="form-control" required placeholder="Phone Number" value={userFormData.phone || ''} onChange={e => setUserFormData({ ...userFormData, phone: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} maxLength={10} />
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                                        <select disabled={userModalMode === 'edit'} className="form-control" value={userFormData.role} onChange={e => setUserFormData({ ...userFormData, role: e.target.value })} style={{ backgroundColor: userModalMode === 'edit' ? '#09090b' : '', fontSize: '10px', padding: '8px' }}>
-                                            <option value="Requestor">Requestor</option><option value="Solver">Solver</option><option value="Dept. Head">Dept. Head</option><option value="Admin">Admin</option><option value="Audit">Audit</option>
+                                        <select className="form-control" required value={userFormData.role} onChange={e => setUserFormData({ ...userFormData, role: e.target.value })} style={{ fontSize: '10px', padding: '8px' }}>
+                                            <option value="" disabled>Select User Role</option>
+                                            {userModalMode === 'edit' ? (
+                                                <>
+                                                    <option value="Requestor">Requestor</option>
+                                                    <option value="Solver">Solver</option>
+                                                    <option value="Dept. Head">Dept. Head</option>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <option value="Requestor">Requestor</option>
+                                                    <option value="Solver">Solver</option>
+                                                    <option value="Dept. Head">Dept. Head</option>
+                                                    <option value="Admin">Admin</option>
+                                                    <option value="Audit">Audit</option>
+                                                </>
+                                            )}
                                         </select>
-                                        <select className="form-control" required value={userFormData.department} onChange={e => setUserFormData({ ...userFormData, department: e.target.value })} style={{ fontSize: '10px', padding: '8px' }}>
+                                        <select className="form-control" required value={userFormData.department} onChange={e => {
+                                            const newDept = e.target.value;
+                                            const deptHead = usersList.find(u => u.department === newDept && u.role === 'Dept. Head');
+                                            setUserFormData({ ...userFormData, department: newDept, manager: deptHead ? deptHead.employee_id : '' });
+                                        }} style={{ fontSize: '10px', padding: '8px' }}>
                                             <option value="" disabled>Select Department</option>
                                             {departmentsList.map(d => <option key={d.department_name} value={d.department_name}>{d.department_name}</option>)}
                                         </select>
@@ -1070,7 +1355,7 @@ const AdminDashboard = ({ user, setUser }) => {
                                         </select>
                                         <input type="text" className="form-control" required placeholder="Grade" value={userFormData.grade} onChange={e => setUserFormData({ ...userFormData, grade: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
                                         <div style={{ position: 'relative' }}>
-                                            <input type="text" required value={userFormData.outlet || ''} onChange={()=>{}} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0 }} />
+                                            <input type="text" required value={userFormData.outlet || ''} onChange={() => { }} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0 }} />
                                             <div className="form-control" style={{ fontSize: '10px', padding: '8px', cursor: 'pointer', minHeight: '33px', display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={(e) => {
                                                 const panel = e.currentTarget.nextElementSibling;
                                                 panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
@@ -1081,16 +1366,29 @@ const AdminDashboard = ({ user, setUser }) => {
                                                 {locationsList.map(l => (
                                                     <label key={l.outlet} style={{ display: 'flex', alignItems: 'center', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', margin: 0 }}>
                                                         <input type="checkbox" style={{ marginRight: '8px', cursor: 'pointer' }} checked={String(userFormData.outlet || '').split(',').includes(l.outlet)} onChange={(e) => {
-                                                            let current = String(userFormData.outlet || '').split(',').map(s=>s.trim()).filter(Boolean);
+                                                            let current = String(userFormData.outlet || '').split(',').map(s => s.trim()).filter(Boolean);
                                                             if (e.target.checked && !current.includes(l.outlet)) current.push(l.outlet);
                                                             else current = current.filter(x => x !== l.outlet);
-                                                            setUserFormData({...userFormData, outlet: current.join(',')});
+                                                            setUserFormData({ ...userFormData, outlet: current.join(',') });
                                                         }} />
                                                         {l.outlet}
                                                     </label>
                                                 ))}
                                             </div>
                                         </div>
+                                    </div>
+                                    <div style={{ marginBottom: '12px' }}>
+                                        <input type="number" className="form-control" min="1" max="5" step="1" placeholder="Critical User Rating (1-5)" value={userFormData.critical_user_rating || ''} onChange={e => {
+                                            const val = e.target.value;
+                                            if (val === '') {
+                                                setUserFormData({ ...userFormData, critical_user_rating: '' });
+                                            } else {
+                                                const num = Number(val);
+                                                if (num >= 1 && num <= 5) {
+                                                    setUserFormData({ ...userFormData, critical_user_rating: val });
+                                                }
+                                            }
+                                        }} style={{ fontSize: '10px', padding: '8px', width: '100%' }} />
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
                                         <button type="button" className="btn" onClick={() => setIsUserModalOpen(false)} style={{ backgroundColor: 'transparent', border: '1px solid #3f3f46', fontSize: '10px', padding: '6px 10px' }}>Cancel</button>
@@ -1218,150 +1516,150 @@ const AdminDashboard = ({ user, setUser }) => {
                         zIndex: isPanelExpanded ? 9999 : 1000, backgroundColor: 'var(--bg-card)', backdropFilter: 'var(--glass-blur)',
                         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}>
-                    <div style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: isPanelExpanded ? '20px 30px' : '0 0 16px 0',
-                        marginBottom: isPanelExpanded ? '0' : '16px',
-                        borderBottom: isPanelExpanded ? 'none' : '1px solid #e5e7eb',
-                        transition: 'padding 0.4s ease'
-                    }}>
-                        <div>
-                            <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                                #{selectedTicket.ticket_id}
-                                <span style={{
-                                    backgroundColor: selectedTicket.status === 'Closed' ? '#f3f4f6' : selectedTicket.status === 'Resolved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                                    color: selectedTicket.status === 'Closed' ? '#6b7280' : selectedTicket.status === 'Resolved' ? '#10b981' : '#3b82f6',
-                                    padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: 'bold'
-                                }}>{selectedTicket.status}</span>
-                            </h3>
-                        </div>
+                        <div style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: isPanelExpanded ? '20px 30px' : '0 0 16px 0',
+                            marginBottom: isPanelExpanded ? '0' : '16px',
+                            borderBottom: isPanelExpanded ? 'none' : '1px solid #e5e7eb',
+                            transition: 'padding 0.4s ease'
+                        }}>
+                            <div>
+                                <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                                    #{selectedTicket.ticket_id}
+                                    <span style={{
+                                        backgroundColor: selectedTicket.closure_type === 'Declined' ? 'rgba(239, 68, 68, 0.1)' : selectedTicket.status === 'Closed' ? '#f3f4f6' : selectedTicket.status === 'Resolved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                                        color: selectedTicket.closure_type === 'Declined' ? '#ef4444' : selectedTicket.status === 'Closed' ? '#6b7280' : selectedTicket.status === 'Resolved' ? '#10b981' : '#3b82f6',
+                                        padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: 'bold'
+                                    }}>{selectedTicket.closure_type === 'Declined' ? 'Declined' : selectedTicket.status}</span>
+                                </h3>
+                            </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <button onClick={() => setIsPanelExpanded(!isPanelExpanded)} style={{ background: 'none', border: 'none', color: isPanelExpanded ? '#4b5563' : '#9ca3af', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                                {isPanelExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                            </button>
-                            <button onClick={() => setSelectedTicket(null)} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '18px', cursor: 'pointer' }}><X size={18} /></button>
-                        </div>
-                    </div>
-
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: isPanelExpanded ? 'center' : 'flex-start',
-                        width: '100%',
-                        borderBottom: '1px solid #e5e7eb',
-                        padding: isPanelExpanded ? '0 30px' : '0',
-                        marginBottom: '20px'
-                    }}>
-                        <button
-                            onClick={() => setActivePanelTab('details')}
-                            style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'details' ? '#3b82f6' : '#1f2937', border: 'none', borderBottom: activePanelTab === 'details' ? '2px solid #3b82f6' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                        >
-                            <FileText size={16} /> Details
-                        </button>
-                        <button
-                            onClick={() => setActivePanelTab('timeline')}
-                            style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'timeline' ? '#3b82f6' : '#1f2937', border: 'none', borderBottom: activePanelTab === 'timeline' ? '2px solid #3b82f6' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                        >
-                            <Clock size={16} /> Timeline
-                        </button>
-                        <button
-                            onClick={() => setActivePanelTab('chat')}
-                            style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'chat' ? '#3b82f6' : '#1f2937', border: 'none', borderBottom: activePanelTab === 'chat' ? '2px solid #3b82f6' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                        >
-                            <MessageSquare size={16} /> Chat
-                        </button>
-                    </div>
-
-                    <div style={{ flex: 1, overflowY: 'auto', padding: isPanelExpanded ? '0 30px 30px 30px' : '0', display: 'flex', flexDirection: 'column' }}>
-                        {activePanelTab === 'chat' ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                            <div className="chat-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: '#f8fafc' }}>
-                                {logsLoading ? (
-                                    <p style={{ color: '#64748b', fontSize: '11px', textAlign: 'center' }}>Loading conversation...</p>
-                                ) : ticketLogs.length === 0 ? (
-                                    <p style={{ color: '#64748b', fontSize: '11px', textAlign: 'center' }}>No history available yet.</p>
-                                ) : (
-                                    ticketLogs.map((log, i) => {
-                                        const isChat = log.action === 'Chat' || log.action === 'Message';
-                                        if (!isChat) return null;
-                                        const isMe = log.user === user.email || log.user === user.name || log.user_id === user.email || log.user_id === user.employee_id;
-                                        return (
-                                            <div key={i} className={isMe ? 'chat-bubble-me' : 'chat-bubble-other'} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '85%', borderRadius: '8px', padding: '10px 12px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', backgroundColor: isMe ? '#dbeafe' : '#ffffff', border: '1px solid #e2e8f0' }}>
-                                                <div className="chat-bubble-user" style={{ fontSize: '10px', marginBottom: '4px', fontWeight: 'bold', color: '#0f172a' }}>{log.user || log.user_id || 'System'}</div>
-                                                <div className="chat-bubble-text" style={{ fontSize: '12px', lineHeight: '1.4', color: '#334155' }}>{log.remarks || log.details}</div>
-                                                <div className="chat-bubble-time" style={{ fontSize: '9px', marginTop: '6px', textAlign: 'right', color: '#94a3b8' }}>{log.timestamp}</div>
-                                            </div>
-                                        );
-                                    })
-                                )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <button onClick={() => setIsPanelExpanded(!isPanelExpanded)} style={{ background: 'none', border: 'none', color: isPanelExpanded ? '#4b5563' : '#9ca3af', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                                    {isPanelExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                                </button>
+                                <button onClick={() => setSelectedTicket(null)} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '18px', cursor: 'pointer' }}><X size={18} /></button>
                             </div>
                         </div>
-                    ) : activePanelTab === 'details' ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '16px' }}>
-                                {/* METADATA GRID (Stacked Labels) */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '20px', columnGap: '16px', padding: '16px', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Raised On</span>
-                                        <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500' }}>{selectedTicket.timestamp ? selectedTicket.timestamp.split(' ')[0] : 'N/A'}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Requestor</span>
-                                        <span style={{ color: '#3b82f6', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{getUserDetails(selectedTicket.raiser_email)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assigned To</span>
-                                        <span style={{ color: '#3b82f6', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{formatSolverDetails(selectedTicket.assigned_to)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</span>
-                                        <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{selectedTicket.location}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Issue Type</span>
-                                        <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{selectedTicket.issue_type}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SLA Score</span>
-                                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: selectedTicket.total_score >= 10 ? '#ef4444' : '#10b981' }}>{selectedTicket.total_score} pts</span>
-                                    </div>
-                                    {selectedTicket.deadline && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Deadline</span>
-                                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#10b981' }}>{selectedTicket.deadline.split(' ')[1] || selectedTicket.deadline.split(' ')[0] || selectedTicket.deadline}</span>
-                                        </div>
-                                    )}
-                                </div>
 
-                                {/* ISSUE DESCRIPTION & ATTACHMENT ROW */}
-                                <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch' }}>
-                                    <div style={{ flex: 1, minWidth: 0, border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', backgroundColor: 'var(--bg-card)' }}>
-                                        <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Issue Description:</strong>
-                                        <div style={{ color: 'var(--text-main)', whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto', paddingRight: '4px', fontSize: '13px', lineHeight: '1.6' }}>{selectedTicket.description}</div>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: isPanelExpanded ? 'center' : 'flex-start',
+                            width: '100%',
+                            borderBottom: '1px solid #e5e7eb',
+                            padding: isPanelExpanded ? '0 30px' : '0',
+                            marginBottom: '20px'
+                        }}>
+                            <button
+                                onClick={() => setActivePanelTab('details')}
+                                style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'details' ? '#3b82f6' : 'var(--text-muted)', border: 'none', borderBottom: activePanelTab === 'details' ? '2px solid #3b82f6' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                            >
+                                <FileText size={16} /> Details
+                            </button>
+                            <button
+                                onClick={() => setActivePanelTab('timeline')}
+                                style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'timeline' ? '#3b82f6' : 'var(--text-muted)', border: 'none', borderBottom: activePanelTab === 'timeline' ? '2px solid #3b82f6' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                            >
+                                <Clock size={16} /> Timeline
+                            </button>
+                            <button
+                                onClick={() => setActivePanelTab('chat')}
+                                style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'chat' ? '#3b82f6' : 'var(--text-muted)', border: 'none', borderBottom: activePanelTab === 'chat' ? '2px solid #3b82f6' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                            >
+                                <MessageSquare size={16} /> Chat
+                            </button>
+                        </div>
+
+                        <div style={{ flex: 1, overflowY: 'auto', padding: isPanelExpanded ? '0 30px 30px 30px' : '0', display: 'flex', flexDirection: 'column' }}>
+                            {activePanelTab === 'chat' ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                                    <div className="chat-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {logsLoading ? (
+                                            <p style={{ color: '#64748b', fontSize: '11px', textAlign: 'center' }}>Loading conversation...</p>
+                                        ) : ticketLogs.length === 0 ? (
+                                            <p style={{ color: '#64748b', fontSize: '11px', textAlign: 'center' }}>No history available yet.</p>
+                                        ) : (
+                                            ticketLogs.map((log, i) => {
+                                                const isChat = log.action === 'Chat' || log.action === 'Message';
+                                                if (!isChat) return null;
+                                                const isMe = log.user === user.email || log.user === user.name || log.user_id === user.email || log.user_id === user.employee_id;
+                                                return (
+                                                    <div key={i} className={isMe ? 'chat-bubble-me' : 'chat-bubble-other'} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '85%', borderRadius: '8px', padding: '10px 12px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', backgroundColor: isMe ? '#dbeafe' : '#ffffff', border: '1px solid #e2e8f0' }}>
+                                                        <div className="chat-bubble-user" style={{ fontSize: '10px', marginBottom: '4px', fontWeight: 'bold', color: '#0f172a' }}>{log.user || log.user_id || 'System'}</div>
+                                                        <div className="chat-bubble-text" style={{ fontSize: '12px', lineHeight: '1.4', color: '#334155' }}>{log.remarks || log.details}</div>
+                                                        <div className="chat-bubble-time" style={{ fontSize: '9px', marginTop: '6px', textAlign: 'right', color: '#94a3b8' }}>{log.timestamp}</div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
                                     </div>
-                                    {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (
-                                        <div style={{ width: '100px', flexShrink: 0 }}>
-                                            <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Attached File:</strong>
-                                            <img 
-                                                src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `/uploads/${selectedTicket.attachment}`}
-                                                onClick={() => {
-                                                    const attachStr = String(selectedTicket.attachment);
-                                                    window.open(attachStr.startsWith('data:') ? attachStr : `/uploads/${attachStr}`, '_blank');
-                                                }}
-                                                style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-                                                alt="Attachment"
-                                                title="Click to view full size"
-                                            />
-                                        </div>
-                                    )}
                                 </div>
+                            ) : activePanelTab === 'details' ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '16px' }}>
+                                    {/* METADATA GRID (Stacked Labels) */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '20px', columnGap: '16px', padding: '16px', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Raised On</span>
+                                            <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500' }}>{selectedTicket.timestamp ? selectedTicket.timestamp.split(' ')[0] : 'N/A'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Requestor</span>
+                                            <span style={{ color: '#3b82f6', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{getUserDetails(selectedTicket.raiser_email)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assigned To</span>
+                                            <span style={{ color: '#3b82f6', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{formatSolverDetails(selectedTicket.assigned_to)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</span>
+                                            <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{selectedTicket.location}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Issue Type</span>
+                                            <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{selectedTicket.issue_type}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SLA Score</span>
+                                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: selectedTicket.total_score >= 10 ? '#ef4444' : '#10b981' }}>{selectedTicket.total_score} pts</span>
+                                        </div>
+                                        {selectedTicket.deadline && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Deadline</span>
+                                                <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#10b981' }}>{selectedTicket.deadline.split(' ')[1] || selectedTicket.deadline.split(' ')[0] || selectedTicket.deadline}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* ISSUE DESCRIPTION & ATTACHMENT ROW */}
+                                    <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch' }}>
+                                        <div style={{ flex: 1, minWidth: 0, border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', backgroundColor: 'var(--bg-card)' }}>
+                                            <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Issue Description:</strong>
+                                            <div style={{ color: 'var(--text-main)', whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto', paddingRight: '4px', fontSize: '13px', lineHeight: '1.6' }}>{selectedTicket.description}</div>
+                                        </div>
+                                        {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (
+                                            <div style={{ width: '100px', flexShrink: 0 }}>
+                                                <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Attached File:</strong>
+                                                <img
+                                                    src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `http://localhost:5000/uploads/${selectedTicket.attachment}`}
+                                                    onClick={() => {
+                                                        const attachStr = String(selectedTicket.attachment);
+                                                        window.open(attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`, '_blank');
+                                                    }}
+                                                    style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                                                    alt="Attachment"
+                                                    title="Click to view full size"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : activePanelTab === 'timeline' ? (
+                                <div style={{ flex: 1, overflowY: 'auto' }}>
+                                    <TicketTimeline logs={ticketLogs} userRole={user?.role} />
+                                </div>
+                            ) : null}
                         </div>
-                    ) : activePanelTab === 'timeline' ? (
-                        <div style={{ flex: 1, overflowY: 'auto' }}>
-                            <TicketTimeline logs={ticketLogs} userRole={user?.role} />
-                        </div>
-                    ) : null}
                     </div>
-                </div>
                 </>
             )}
         </Layout>

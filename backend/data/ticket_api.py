@@ -421,8 +421,9 @@ def update_ticket_status():
         tickets.loc[tickets['ticket_id'] == ticket_id, 'closed_timestamp'] = datetime.now().strftime("%d-%m-%Y %H:%M")
         tickets.loc[tickets['ticket_id'] == ticket_id, 'closure_type'] = 'Accepted'
         if rating:
-            tickets.loc[tickets['ticket_id'] == ticket_id, 'raiser_rating_solver'] = int(rating)
-            tickets.loc[tickets['ticket_id'] == ticket_id, 'raiser_rating_remark'] = remarks
+            tickets.loc[tickets['ticket_id'] == ticket_id, 'solver_rating'] = float(rating)
+        if remarks:
+            tickets.loc[tickets['ticket_id'] == ticket_id, 'solver_rating_comment'] = remarks
             
     elif new_status == 'In Progress':
         tickets.loc[tickets['ticket_id'] == ticket_id, 'solver_comments'] = remarks
@@ -469,9 +470,9 @@ def update_ticket_status():
     elif new_status == 'Closed':
         send_omni_notification(solver, f"Ticket #{ticket_id} was Accepted and Closed by the requestor.", role_context='Solver')
     elif new_status == 'Decline':
-        send_omni_notification(requestor, f"Alert: Ticket #{ticket_id} was DECLINED and Closed. Reason: {remarks}", role_context='Requestor')
+        send_omni_notification(requestor, f"Alert: Ticket #{ticket_id} was DECLINED and Closed.", role_context='Requestor')
     elif new_status == 'Reopened':
-        send_omni_notification(solver, f"Action Required: Ticket #{ticket_id} was REOPENED. Reason: {remarks}", role_context='Solver')
+        send_omni_notification(solver, f"Action Required: Ticket #{ticket_id} was REOPENED.", role_context='Solver')
         send_omni_notification(manager_email, f"FYI: Your team member's Ticket #{ticket_id} was Reopened.", role_context='Superadmin')
         send_omni_notification(dept_head_email, f"Escalation FYI: Ticket #{ticket_id} in your department was Reopened.", role_context='Admin')
     else:
@@ -501,6 +502,12 @@ def request_handover():
     # STORE AS EMP ID
     target_emp_id = get_user_emp_id(target_id, users)
     
+    dept = tickets.loc[tickets['ticket_id'] == ticket_id, 'dept_assigned'].values[0]
+    
+    dept_head_row = users[(users['department'] == dept) & (users['role'].str.contains('Dept', case=False, na=False))]
+    if dept_head_row.empty:
+        return jsonify({"error": f"Cannot request handover: No Department Head assigned for {dept} to approve the transfer."}), 400
+
     tickets.loc[tickets['ticket_id'] == ticket_id, 'reassign_requested_to'] = target_emp_id
     tickets.loc[tickets['ticket_id'] == ticket_id, 'reassign_reason'] = reason
 
@@ -508,12 +515,9 @@ def request_handover():
 
     solver_raw = tickets.loc[tickets['ticket_id'] == ticket_id, 'assigned_to'].values[0]
     solver_email = get_user_email(solver_raw, users) or solver_raw
-    dept = tickets.loc[tickets['ticket_id'] == ticket_id, 'dept_assigned'].values[0]
     
-    dept_head_row = users[(users['department'] == dept) & (users['role'].str.contains('Dept', case=False, na=False))]
-    if not dept_head_row.empty:
-        dept_head_email = dept_head_row.iloc[0].get('email')
-        database.create_notification(dept_head_email, f"Action Required: Handover Request from {solver_email} for Ticket #{ticket_id}.", role_context='Admin', ticket_id=ticket_id)
+    dept_head_email = dept_head_row.iloc[0].get('email')
+    database.create_notification(dept_head_email, f"Action Required: Handover Request from {solver_email} for Ticket #{ticket_id}.", role_context='Admin', ticket_id=ticket_id)
 
     database.log_ticket_action(ticket_id, solver_raw, "Handover Requested", f"Target: {target_emp_id}", reason)
 
@@ -535,8 +539,10 @@ def rate_requestor():
     if ticket_id not in tickets['ticket_id'].values:
         return jsonify({"error": "Ticket not found"}), 404
 
-    tickets.loc[tickets['ticket_id'] == ticket_id, 'solver_rating_raiser'] = rating
-    tickets.loc[tickets['ticket_id'] == ticket_id, 'solver_rating_remark'] = remark
+    if rating:
+        tickets.loc[tickets['ticket_id'] == ticket_id, 'requestor_rating'] = float(rating)
+    if remark:
+        tickets.loc[tickets['ticket_id'] == ticket_id, 'requestor_rating_comment'] = remark
 
     database.save_data(tickets, 'tickets')
     

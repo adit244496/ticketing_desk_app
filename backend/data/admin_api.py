@@ -26,11 +26,19 @@ def create_user():
     users = database.load_data('users')
     
     # Basic Validation
+    if data.get('phone') and len(str(data['phone'])) > 10:
+        return jsonify({"error": "Phone number must not exceed 10 digits"}), 400
     if data['email'] in users['email'].values:
         return jsonify({"error": "Email already exists"}), 400
     if str(data['employee_id']) in users['employee_id'].astype(str).values:
         return jsonify({"error": "Employee ID already exists"}), 400
         
+    raw_rating = data.get('critical_user_rating', 0)
+    try:
+        rating_val = float(raw_rating) if raw_rating not in (None, '', 'null', 'nan') else 0.0
+    except (ValueError, TypeError):
+        rating_val = 0.0
+
     new_user = {
         "employee_id": data['employee_id'],
         "email": data['email'],
@@ -41,29 +49,41 @@ def create_user():
         "outlet": data['outlet'],
         "grade": data['grade'],
         "phone": data['phone'],
-        "critical_user_rating": data.get('critical_user_rating', 0),
+        "critical_user_rating": rating_val,
         "manager": data.get('manager'),
         "first_login": True
     }
     
-    users = pd.concat([users, pd.DataFrame([new_user])], ignore_index=True)
-    database.save_data(users, 'users')
+    database.append_data(pd.DataFrame([new_user]), 'users')
     return jsonify({"message": "User created successfully"}), 201
 
 @admin_bp.route('/api/admin/users/update', methods=['POST'])
 def update_user():
     data = request.json
     emp_id = data.get('employee_id')
+    original_emp_id = data.get('original_employee_id', emp_id)
     users = database.load_data('users')
     
-    if str(emp_id) not in users['employee_id'].astype(str).values:
+    if data.get('phone') and len(str(data['phone'])) > 10:
+        return jsonify({"error": "Phone number must not exceed 10 digits"}), 400
+        
+    if str(original_emp_id) not in users['employee_id'].astype(str).values:
         return jsonify({"error": "User not found"}), 404
         
-    mask = users['employee_id'].astype(str) == str(emp_id)
+    mask = users['employee_id'].astype(str) == str(original_emp_id)
+    original_email = users.loc[mask, 'email'].values[0]
+    
+    raw_rating_update = data.get('critical_user_rating', 0)
+    try:
+        rating_val_update = float(raw_rating_update) if raw_rating_update not in (None, '', 'null', 'nan') else 0.0
+    except (ValueError, TypeError):
+        rating_val_update = 0.0
+
+    users.loc[mask, 'employee_id'] = emp_id
     users.loc[mask, 'email'] = data.get('email')
     users.loc[mask, 'role'] = data.get('role')
     users.loc[mask, 'department'] = data.get('department')
-    users.loc[mask, 'critical_user_rating'] = data.get('critical_user_rating', 0)
+    users.loc[mask, 'critical_user_rating'] = rating_val_update
     users.loc[mask, 'outlet'] = data.get('outlet')
     users.loc[mask, 'manager'] = data.get('manager')
     users.loc[mask, 'name'] = data.get('name')
@@ -71,6 +91,24 @@ def update_user():
     users.loc[mask, 'grade'] = data.get('grade')
     
     database.save_data(users, 'users')
+
+    if str(original_emp_id) != str(emp_id) or str(original_email) != str(data.get('email')):
+        tickets = database.load_data('tickets')
+        tickets_changed = False
+        if str(original_emp_id) != str(emp_id):
+            if 'assigned_to' in tickets.columns:
+                tickets.loc[tickets['assigned_to'].astype(str) == str(original_emp_id), 'assigned_to'] = emp_id
+                tickets_changed = True
+            if 'reassign_requested_to' in tickets.columns:
+                tickets.loc[tickets['reassign_requested_to'].astype(str) == str(original_emp_id), 'reassign_requested_to'] = emp_id
+                tickets_changed = True
+        if str(original_email) != str(data.get('email')):
+            if 'raiser_email' in tickets.columns:
+                tickets.loc[tickets['raiser_email'].astype(str) == str(original_email), 'raiser_email'] = data.get('email')
+                tickets_changed = True
+        if tickets_changed:
+            database.save_data(tickets, 'tickets')
+
     return jsonify({"message": "User updated successfully"}), 200
 
 # --- LOCATION MANAGEMENT ---
@@ -89,8 +127,7 @@ def create_location():
         return jsonify({"error": "Outlet code already exists"}), 400
         
     new_loc = pd.DataFrame([data])
-    locations = pd.concat([locations, new_loc], ignore_index=True)
-    database.save_data(locations, 'locations')
+    database.append_data(new_loc, 'locations')
     return jsonify({"message": "Location added successfully"}), 201
 
 # --- MASTER LOGIC RULES ---
@@ -166,8 +203,7 @@ def create_department():
         return jsonify({"error": "Department already exists"}), 400
         
     new_dept = pd.DataFrame([{'department_name': dept_name}])
-    departments = pd.concat([departments, new_dept], ignore_index=True)
-    database.save_data(departments, 'departments')
+    database.append_data(new_dept, 'departments')
     return jsonify({"message": "Department created successfully"}), 201
 
 #-----Update MAster Logic Rules-------
@@ -182,7 +218,16 @@ def update_rule():
     match_idx = rules.index[(rules['department'] == old_dept) & (rules['issue_type'] == old_issue)].tolist()
     
     if not match_idx:
-        return jsonify({"error": "Rule not found"}), 404
+        new_rule = {
+            'department': data.get('department'),
+            'issue_type': data.get('issue_type'),
+            'outlet': data.get('outlet'),
+            'base_priority': data.get('base_priority', 3),
+            'assigned_solver': data.get('assigned_solver'),
+            'deadline_hours': data.get('deadline_hours', 24)
+        }
+        database.append_data(pd.DataFrame([new_rule]), 'master')
+        return jsonify({"message": "Rule created successfully"}), 201
         
     idx = match_idx[0]
     
@@ -221,6 +266,10 @@ def delete_user():
     user_email = str(target_user.iloc[0].get('email', '')).strip()
     
     users = users[users['employee_id'].astype(str) != str(emp_id)]
+    
+    if 'manager' in users.columns:
+        users.loc[users['manager'].astype(str) == str(emp_id), 'manager'] = '-'
+        
     database.save_data(users, 'users')
     
     def remove_assignment(val):

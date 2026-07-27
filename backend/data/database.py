@@ -83,6 +83,9 @@ def load_data(table_name):
             df['total_score'] = pd.to_numeric(df['total_score'], errors='coerce').fillna(0).astype(int)
             df = df.sort_values(by='total_score', ascending=False).reset_index(drop=True)
             
+        if table_name == 'users' and not df.empty and 'critical_user_rating' in df.columns:
+            df['critical_user_rating'] = pd.to_numeric(df['critical_user_rating'], errors='coerce').fillna(0.0)
+
         df = df.replace({np.nan: None})
         if table_name in ['users', 'master', 'locations']:
             df.rename(columns=lambda x: str(x).lower().replace(" ", "_"), inplace=True)
@@ -97,8 +100,15 @@ def _ensure_columns(conn, table_name, df):
         return
     res = conn.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}'"))
     existing_cols = {row[0] for row in res.fetchall()}
+    if table_name == 'tickets':
+        for old_col in ['raiser_rating_solver', 'raiser_rating_remark', 'solver_rating_raiser', 'solver_rating_remark', 'solver_comment', 'requestor_comment']:
+            if old_col in existing_cols:
+                try:
+                    conn.execute(text(f"ALTER TABLE tickets DROP COLUMN \"{old_col}\";"))
+                except Exception:
+                    pass
     for col in df.columns:
-        if col not in existing_cols:
+        if col not in existing_cols and col not in ['raiser_rating_solver', 'raiser_rating_remark', 'solver_rating_raiser', 'solver_rating_remark', 'solver_comment', 'requestor_comment']:
             print(f"Auto-adding missing column '{col}' to table '{table_name}'...")
             try:
                 conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN \"{col}\" TEXT;"))
@@ -108,6 +118,8 @@ def _ensure_columns(conn, table_name, df):
 def save_data(df, table_name):
     from sqlalchemy import text
     try:
+        if table_name == 'users' and not df.empty and 'critical_user_rating' in df.columns:
+            df['critical_user_rating'] = pd.to_numeric(df['critical_user_rating'], errors='coerce').fillna(0.0)
         with engine.begin() as conn:
             if engine.dialect.has_table(conn, table_name):
                 _ensure_columns(conn, table_name, df)
@@ -623,7 +635,7 @@ def init_db():
     append_data(pd.DataFrame(columns=cols), 'departments')
 
     print("Verifying schema and tables for 'tickets'...")
-    cols = ['ticket_id', 'raiser_email', 'assigned_to', 'dept_assigned', 'status', 'total_score', 'deadline', 'last_escalation_time', 'timestamp', 'solved_timestamp', 'closed_timestamp']
+    cols = ['ticket_id', 'raiser_email', 'assigned_to', 'dept_assigned', 'status', 'total_score', 'deadline', 'last_escalation_time', 'timestamp', 'solved_timestamp', 'closed_timestamp', 'requestor_rating', 'requestor_rating_comment', 'solver_rating', 'solver_rating_comment']
     append_data(pd.DataFrame(columns=cols), 'tickets')
 
     print("Verifying schema and tables for 'logs'...")
