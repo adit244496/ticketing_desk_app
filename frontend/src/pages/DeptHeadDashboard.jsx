@@ -11,7 +11,6 @@ import DeptAnalytics from '../components/DeptAnalytics';
 import TicketTimeline from '../components/TicketTimeline';
 import { Filter, Briefcase, TrendingUp, BarChart2, CheckCircle, XCircle, Zap, Cog, X, Maximize2, Minimize2, FileText, Clock, MessageSquare, AlertTriangle, CheckCircle2, Paperclip } from 'lucide-react';
 
-#
 import TicketFilterBar from '../components/TicketFilterBar';
 
 const DeptHeadDashboard = ({ user, setUser }) => {
