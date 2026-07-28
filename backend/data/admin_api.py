@@ -33,6 +33,12 @@ def create_user():
     if str(data['employee_id']) in users['employee_id'].astype(str).values:
         return jsonify({"error": "Employee ID already exists"}), 400
         
+    mgr = data.get('manager')
+    if mgr and str(mgr).strip() and str(mgr).strip() != '-':
+        mgr_str = str(mgr).strip()
+        if mgr_str not in users['employee_id'].astype(str).values:
+            return jsonify({"error": f"Manager ID '{mgr_str}' does not exist in the system"}), 400
+        
     raw_rating = data.get('critical_user_rating', 0)
     try:
         rating_val = float(raw_rating) if raw_rating not in (None, '', 'null', 'nan') else 0.0
@@ -69,6 +75,12 @@ def update_user():
         
     if str(original_emp_id) not in users['employee_id'].astype(str).values:
         return jsonify({"error": "User not found"}), 404
+        
+    mgr = data.get('manager')
+    if mgr and str(mgr).strip() and str(mgr).strip() != '-':
+        mgr_str = str(mgr).strip()
+        if mgr_str not in users['employee_id'].astype(str).values and mgr_str != str(emp_id):
+            return jsonify({"error": f"Manager ID '{mgr_str}' does not exist in the system"}), 400
         
     mask = users['employee_id'].astype(str) == str(original_emp_id)
     original_email = users.loc[mask, 'email'].values[0]
@@ -466,6 +478,13 @@ def import_bulk_data(entity):
         # Clean data
         df = df.dropna(how='all') # Drop empty rows
         
+        table_name = entity if entity != 'rules' else 'master'
+        existing_df = database.load_data(table_name)
+        
+        existing_users_df = existing_df if entity == 'users' else database.load_data('users')
+        existing_user_ids = existing_users_df['employee_id'].astype(str).tolist() if not existing_users_df.empty else []
+        current_batch_ids = df['employee_id'].astype(str).str.strip().tolist() if 'employee_id' in df.columns else []
+
         # Cell-by-cell validation
         for index, row in df.iterrows():
             row_num = index + 2  # +2 because index is 0-based and excel has header row
@@ -474,7 +493,17 @@ def import_bulk_data(entity):
                     return jsonify({"error": f"Row {row_num}, Column 'email': Invalid email address."}), 400
                 if pd.isna(row.get('employee_id')):
                     return jsonify({"error": f"Row {row_num}, Column 'employee_id': Cannot be empty."}), 400
+                
+                mgr = row.get('manager')
+                if pd.notna(mgr) and str(mgr).strip() and str(mgr).lower() != 'nan' and str(mgr).strip() != '-':
+                    mgr_str = str(mgr).strip()
+                    if mgr_str not in existing_user_ids and mgr_str not in current_batch_ids:
+                        return jsonify({"error": f"Row {row_num}, Column 'manager': Manager ID '{mgr_str}' does not exist in the system or this upload file."}), 400
             elif entity == 'rules':
+                if pd.isna(row.get('department')):
+                    return jsonify({"error": f"Row {row_num}, Column 'department': Cannot be empty."}), 400
+                if pd.isna(row.get('issue_type')):
+                    return jsonify({"error": f"Row {row_num}, Column 'issue_type': Cannot be empty."}), 400
                 try:
                     int(float(row.get('base_priority')))
                 except (ValueError, TypeError):
@@ -485,12 +514,16 @@ def import_bulk_data(entity):
                     return jsonify({"error": f"Row {row_num}, Column 'deadline_hours': Must be an integer."}), 400
                 if pd.isna(row.get('assigned_solver')):
                      return jsonify({"error": f"Row {row_num}, Column 'assigned_solver': Cannot be empty."}), 400
+                     
+                solvers_str = str(row.get('assigned_solver'))
+                if solvers_str and solvers_str.lower() != 'nan':
+                    solvers_list = [s.strip() for s in solvers_str.split(',')]
+                    for solver in solvers_list:
+                        if solver not in existing_user_ids and solver not in current_batch_ids:
+                            return jsonify({"error": f"Row {row_num}, Column 'assigned_solver': Solver ID '{solver}' does not exist in the system."}), 400
             elif entity == 'locations':
                 if pd.isna(row.get('outlet')):
                     return jsonify({"error": f"Row {row_num}, Column 'outlet': Cannot be empty."}), 400
-        
-        table_name = entity if entity != 'rules' else 'master'
-        existing_df = database.load_data(table_name)
         
         if entity == 'users':
             # Hash passwords for new users

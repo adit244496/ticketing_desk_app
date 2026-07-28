@@ -48,7 +48,7 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
         return localStorage.getItem('sidebarCollapsed') === 'true';
     });
-
+    
     const [hoveredNav, setHoveredNav] = useState(null);
     const hoverTimeoutRef = useRef(null);
 
@@ -379,7 +379,7 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                 <div style={{ padding: '0 16px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', overflow: 'hidden' }}>
                     {!isSidebarCollapsed && (
                         <h2 style={{ fontSize: '11px', color: sb.text, margin: 0, fontWeight: '700', letterSpacing: '0.05em', lineHeight: '1.3' }}>
-                            HOSPITALITY<br />TICKETING TOOL
+                            HOSPITALITY<br/>TICKETING TOOL
                         </h2>
                     )}
                     <button
@@ -409,7 +409,7 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                     {getNavLinks().map((link) => {
                         const isActiveRoute = location.pathname.startsWith(link.path);
                         const wasActive = lastPath && lastPath.startsWith(link.path);
-
+                        
                         let isOpen = false;
                         if (mountedPath === location.pathname) {
                             isOpen = openNavMenus[link.path] !== undefined ? openNavMenus[link.path] : isActiveRoute;
@@ -421,8 +421,8 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                         const hasTabs = linkTabs && linkTabs.length > 0;
 
                         return (
-                            <div
-                                key={link.path}
+                            <div 
+                                key={link.path} 
                                 style={{ position: 'relative' }}
                                 onMouseEnter={() => handleMouseEnter(link.path)}
                                 onMouseLeave={handleMouseLeave}
@@ -553,16 +553,16 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                 }}>
                     {/* LEFT SIDE: LOGO */}
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <img
-                            src="/logo.png"
-                            alt="Company Logo"
-                            style={{ height: '28px', objectFit: 'contain', filter: isDarkMode ? 'brightness(0.9)' : 'none' }}
+                        <img 
+                            src="/logo.png" 
+                            alt="Company Logo" 
+                            style={{ height: '28px', objectFit: 'contain', filter: isDarkMode ? 'brightness(0.9)' : 'none' }} 
                         />
                     </div>
 
                     {/* RIGHT SIDE: ICONS & USER PROFILE */}
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-
+                        
                         <button
                             onClick={() => setIsDarkMode(!isDarkMode)}
                             style={{
@@ -668,17 +668,17 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                                                                     <span style={{
                                                                         fontSize: '8px', padding: '2px 6px', borderRadius: '12px', fontWeight: 'bold', width: 'fit-content',
                                                                         backgroundColor: n.role_context === 'Requestor' ? (isDarkMode ? 'rgba(59, 130, 246, 0.2)' : '#dbeafe') :
-                                                                            n.role_context === 'Solver' ? (isDarkMode ? 'rgba(249, 115, 22, 0.2)' : '#ffedd5') :
-                                                                                n.role_context === 'Superadmin' ? (isDarkMode ? 'rgba(234, 179, 8, 0.2)' : '#fef3c7') :
-                                                                                    n.role_context === 'Admin' ? (isDarkMode ? 'rgba(239, 68, 68, 0.2)' : '#fee2e2') :
-                                                                                        n.role_context === 'Viewer' ? (isDarkMode ? 'rgba(168, 85, 247, 0.2)' : '#f3e8ff') :
-                                                                                            (isDarkMode ? 'rgba(156, 163, 175, 0.2)' : '#f3f4f6'),
+                                                                                         n.role_context === 'Solver' ? (isDarkMode ? 'rgba(249, 115, 22, 0.2)' : '#ffedd5') :
+                                                                                         n.role_context === 'Superadmin' ? (isDarkMode ? 'rgba(234, 179, 8, 0.2)' : '#fef3c7') :
+                                                                                         n.role_context === 'Admin' ? (isDarkMode ? 'rgba(239, 68, 68, 0.2)' : '#fee2e2') :
+                                                                                         n.role_context === 'Viewer' ? (isDarkMode ? 'rgba(168, 85, 247, 0.2)' : '#f3e8ff') :
+                                                                                         (isDarkMode ? 'rgba(156, 163, 175, 0.2)' : '#f3f4f6'),
                                                                         color: n.role_context === 'Requestor' ? (isDarkMode ? '#93c5fd' : '#2563eb') :
-                                                                            n.role_context === 'Solver' ? (isDarkMode ? '#fdba74' : '#ea580c') :
-                                                                                n.role_context === 'Superadmin' ? (isDarkMode ? '#fde047' : '#d97706') :
-                                                                                    n.role_context === 'Admin' ? (isDarkMode ? '#fca5a5' : '#dc2626') :
-                                                                                        n.role_context === 'Viewer' ? (isDarkMode ? '#d8b4fe' : '#9333ea') :
-                                                                                            (isDarkMode ? '#d1d5db' : '#4b5563')
+                                                                               n.role_context === 'Solver' ? (isDarkMode ? '#fdba74' : '#ea580c') :
+                                                                               n.role_context === 'Superadmin' ? (isDarkMode ? '#fde047' : '#d97706') :
+                                                                               n.role_context === 'Admin' ? (isDarkMode ? '#fca5a5' : '#dc2626') :
+                                                                               n.role_context === 'Viewer' ? (isDarkMode ? '#d8b4fe' : '#9333ea') :
+                                                                               (isDarkMode ? '#d1d5db' : '#4b5563')
                                                                     }}>
                                                                         {n.role_context === 'Viewer' ? 'CC (Viewer)' : n.role_context}
                                                                     </span>
@@ -704,11 +704,11 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
 
                         {/* USER PROFILE */}
                         <div style={{ position: 'relative' }}>
-                            <div
+                            <div 
                                 onClick={() => setShowUserProfile(!showUserProfile)}
                                 style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '6px 8px', borderRadius: '8px', transition: 'background-color 0.2s', border: `1px solid ${showUserProfile ? t.borderHover : 'transparent'}`, backgroundColor: showUserProfile ? t.card : 'transparent' }}
-                                onMouseOver={(e) => { if (!showUserProfile) e.currentTarget.style.backgroundColor = t.card; }}
-                                onMouseOut={(e) => { if (!showUserProfile) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                onMouseOver={(e) => { if(!showUserProfile) e.currentTarget.style.backgroundColor = t.card; }}
+                                onMouseOut={(e) => { if(!showUserProfile) e.currentTarget.style.backgroundColor = 'transparent'; }}
                             >
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                     <span style={{ fontSize: '12px', fontWeight: '600', color: t.text }}>{user.name || 'Unknown User'}</span>
@@ -732,16 +732,16 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                                     overflow: 'hidden', display: 'flex', flexDirection: 'column'
                                 }}>
                                     {/* Header Section */}
-                                    <div style={{
-                                        padding: '24px 20px',
+                                    <div style={{ 
+                                        padding: '24px 20px', 
                                         backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
                                         borderBottom: `1px solid ${t.border}`,
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px'
                                     }}>
-                                        <div style={{
-                                            width: '64px', height: '64px', borderRadius: '50%',
-                                            backgroundColor: '#3b82f6', color: '#fff',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        <div style={{ 
+                                            width: '64px', height: '64px', borderRadius: '50%', 
+                                            backgroundColor: '#3b82f6', color: '#fff', 
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
                                             fontSize: '28px', fontWeight: 'bold',
                                             boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)'
                                         }}>
@@ -757,17 +757,17 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                                     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                             <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textMuted }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                 <span style={{ fontSize: '10px', color: t.textSub, textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>Email Address</span>
                                                 <span style={{ fontSize: '13px', color: t.text, fontWeight: '500' }}>{user.email || 'N/A'}</span>
                                             </div>
                                         </div>
-
+                                        
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                             <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textMuted }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                 <span style={{ fontSize: '10px', color: t.textSub, textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>Phone Number</span>
@@ -777,7 +777,7 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
 
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                             <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textMuted }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><rect x="8" y="14" width="8" height="4" rx="1" ry="1" /></svg>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><rect x="8" y="14" width="8" height="4" rx="1" ry="1"/></svg>
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                 <span style={{ fontSize: '10px', color: t.textSub, textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>ID & Grade</span>
@@ -798,10 +798,10 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
 
             {/* CALENDAR MODAL */}
             {showCalendar && (
-                <CalendarModal
-                    user={user}
-                    isDarkMode={isDarkMode}
-                    onClose={() => setShowCalendar(false)}
+                <CalendarModal 
+                    user={user} 
+                    isDarkMode={isDarkMode} 
+                    onClose={() => setShowCalendar(false)} 
                 />
             )}
         </div>

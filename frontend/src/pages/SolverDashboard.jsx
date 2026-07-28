@@ -32,7 +32,7 @@ const SolverDashboard = ({ user, setUser }) => {
     const [isPanelExpanded, setIsPanelExpanded] = useState(false);
     const [isHandoverUnlocked, setIsHandoverUnlocked] = useState(false);
     const [showHandoverConfirm, setShowHandoverConfirm] = useState(false);
-
+    
     const location = useLocation();
 
     // Reset expanded panel and selected ticket when navigating (even to the same route)
@@ -142,7 +142,7 @@ const SolverDashboard = ({ user, setUser }) => {
                     message: chatInput
                 });
             }
-
+            
             setChatInput('');
             setChatFile(null);
 
@@ -368,7 +368,7 @@ const SolverDashboard = ({ user, setUser }) => {
         </div>
     );
 
-
+    
     const renderActionForms = () => (
         <div style={{ marginTop: '0px' }}>
             {selectedTicket.status === 'Closed' ? (
@@ -417,13 +417,13 @@ const SolverDashboard = ({ user, setUser }) => {
                 <div>
                     {selectedTicket.reassign_requested_to && String(selectedTicket.reassign_requested_to).toLowerCase() !== 'nan' && String(selectedTicket.reassign_requested_to).trim() !== '' ? (
                         <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', padding: '16px', borderRadius: '6px', fontSize: '11px', border: '1px solid rgba(59, 130, 246, 0.2)', marginTop: '20px', textAlign: 'center' }}>
-                            ⏳ <strong>Handover Pending Approval</strong><br />
-                            <span style={{ color: '#a1a1aa', fontSize: '10px' }}>This ticket is locked while waiting for your Department Head to approve the transfer.</span>
+                            ⏳ <strong>Handover Pending Approval</strong><br/>
+                            <span style={{color: '#a1a1aa', fontSize: '10px'}}>This ticket is locked while waiting for your Department Head to approve the transfer.</span>
                         </div>
                     ) : selectedTicket.status === 'Resolved' ? (
                         <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '16px', borderRadius: '6px', fontSize: '12px', border: '1px solid rgba(16, 185, 129, 0.2)', marginTop: '10px', textAlign: 'center' }}>
-                            ✅ <strong>Ticket Resolved</strong><br />
-                            <span style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '4px', display: 'inline-block' }}>Status updates are locked while awaiting closure by the requestor.</span>
+                            ✅ <strong>Ticket Resolved</strong><br/>
+                            <span style={{color: 'var(--text-muted)', fontSize: '11px', marginTop: '4px', display: 'inline-block'}}>Status updates are locked while awaiting closure by the requestor.</span>
                         </div>
                     ) : (
                         <>
@@ -442,8 +442,8 @@ const SolverDashboard = ({ user, setUser }) => {
                                 {!updateForms[selectedTicket.ticket_id]?.file ? (
                                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', border: '1px solid var(--border)', padding: '0', borderRadius: '6px', fontSize: '11px', color: 'var(--text-main)', backgroundColor: 'var(--bg-main)', margin: 0, transition: 'all 0.2s', fontWeight: '600', height: '32px', width: '100%', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }} onMouseOver={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.color = '#3b82f6'; }} onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-main)'; }}>
                                         <Paperclip size={12} /> Attach
-                                        <input
-                                            type="file"
+                                        <input 
+                                            type="file" 
                                             accept="image/*"
                                             style={{ display: 'none' }}
                                             onChange={(e) => handleUpdateFormChange(selectedTicket.ticket_id, 'file', e.target.files[0])}
@@ -451,10 +451,10 @@ const SolverDashboard = ({ user, setUser }) => {
                                     </label>
                                 ) : (
                                     <div style={{ position: 'relative', width: '100%', height: '32px', borderRadius: '6px', border: '2px solid #3b82f6', padding: '2px', backgroundColor: 'var(--bg-card)', boxShadow: '0 2px 8px rgba(59,130,246,0.15)' }}>
-                                        <img
-                                            src={URL.createObjectURL(updateForms[selectedTicket.ticket_id].file)}
-                                            alt="Preview"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '3px', cursor: 'pointer', transition: 'opacity 0.2s' }}
+                                        <img 
+                                            src={URL.createObjectURL(updateForms[selectedTicket.ticket_id].file)} 
+                                            alt="Preview" 
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '3px', cursor: 'pointer', transition: 'opacity 0.2s' }} 
                                             onClick={() => window.open(URL.createObjectURL(updateForms[selectedTicket.ticket_id].file), '_blank')}
                                             onMouseOver={e => e.currentTarget.style.opacity = 0.8}
                                             onMouseOut={e => e.currentTarget.style.opacity = 1}
@@ -479,8 +479,8 @@ const SolverDashboard = ({ user, setUser }) => {
                             </form>
 
                             {!isHandoverUnlocked ? (
-                                <button
-                                    onClick={() => setIsHandoverUnlocked(true)}
+                                <button 
+                                    onClick={() => setIsHandoverUnlocked(true)} 
                                     style={{ width: '100%', padding: '6px', background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-muted)', fontSize: '11px', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: '600' }}
                                     onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-main)'; e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
                                     onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
@@ -503,7 +503,7 @@ const SolverDashboard = ({ user, setUser }) => {
                                             <option value="" disabled>Select peer...</option>
                                             {peers.map(p => <option key={p.employee_id} value={p.employee_id}>{p.name}</option>)}
                                         </select>
-
+                                        
                                         <input
                                             type="text"
                                             className="form-control"
@@ -576,194 +576,133 @@ const SolverDashboard = ({ user, setUser }) => {
                         </div>
                     </div>
 
-                    {error && <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '8px', borderRadius: '3px', marginBottom: '12px', fontSize: '10px' }}>{error}</div>}
-                    {loading && <p style={{ color: '#a1a1aa', fontSize: '10px' }}>Loading your tasks...</p>}
+                {error && <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '8px', borderRadius: '3px', marginBottom: '12px', fontSize: '10px' }}>{error}</div>}
+                {loading && <p style={{ color: '#a1a1aa', fontSize: '10px' }}>Loading your tasks...</p>}
 
-                    <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
-                        <div style={{ flex: 1, minWidth: 0, transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }}>
-                            <div className="card" style={{ padding: '16px', zIndex: 10, marginBottom: '16px' }}>
-                                <TicketFilterBar tickets={tickets} onFilter={setFilteredTickets} usersList={usersList} />
-                            </div>
-                            {!selectedTicket ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                                    {!loading && activeTab === 'active' && renderTicketTable(activeTickets)}
-                                    {!loading && activeTab === 'closed' && renderTicketTable(closedTickets)}
-                                </div>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                                    {!loading && activeTab === 'active' && renderTicketTable(activeTickets)}
-                                    {!loading && activeTab === 'closed' && renderTicketTable(closedTickets)}
-                                </div>
-                            )}
+                <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
+                    <div style={{ flex: 1, minWidth: 0, transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }}>
+                        <div className="card" style={{ padding: '16px', zIndex: 10, marginBottom: '16px' }}>
+                            <TicketFilterBar tickets={tickets} onFilter={setFilteredTickets} usersList={usersList} />
                         </div>
+                        {!selectedTicket ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                                {!loading && activeTab === 'active' && renderTicketTable(activeTickets)}
+                                {!loading && activeTab === 'closed' && renderTicketTable(closedTickets)}
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                                {!loading && activeTab === 'active' && renderTicketTable(activeTickets)}
+                                {!loading && activeTab === 'closed' && renderTicketTable(closedTickets)}
+                            </div>
+                        )}
                     </div>
                 </div>
+            </div>
 
-                {/* NEW Master-Detail Right Panel (FIXED SIDEBAR) */}
-                {selectedTicket && (
-                    <>
-                        {/* OVERLAY FOR EXPANDED VIEW */}
-                        {isPanelExpanded && (
-                            <div
-                                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9998 }}
-                                onClick={() => setIsPanelExpanded(false)}
-                            />
-                        )}
-                        <div className={!isPanelExpanded ? "slide-in-right-panel" : ""} style={{
-                            ...(isPanelExpanded ? {
-                                position: 'fixed', top: '5%', bottom: '5%', left: '10%', right: '10%', width: 'auto',
-                                margin: 'auto', border: '1px solid var(--border)', borderRadius: '12px',
-                                boxShadow: 'var(--shadow-lg)'
-                            } : {
-                                position: 'fixed', right: 0, top: '52px', bottom: 0, width: '450px',
-                                margin: 0, borderLeft: '1px solid var(--border)',
-                                boxShadow: '-10px 0 30px rgba(0,0,0,0.05)'
-                            }),
-                            overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '24px',
-                            zIndex: isPanelExpanded ? 9999 : 1000, backgroundColor: 'var(--bg-card)', backdropFilter: 'var(--glass-blur)',
-                            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+            {/* NEW Master-Detail Right Panel (FIXED SIDEBAR) */}
+            {selectedTicket && (
+                <>
+                    {/* OVERLAY FOR EXPANDED VIEW */}
+                    {isPanelExpanded && (
+                        <div
+                            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9998 }}
+                            onClick={() => setIsPanelExpanded(false)}
+                        />
+                    )}
+                    <div className={!isPanelExpanded ? "slide-in-right-panel" : ""} style={{
+                        ...(isPanelExpanded ? {
+                            position: 'fixed', top: '5%', bottom: '5%', left: '10%', right: '10%', width: 'auto',
+                            margin: 'auto', border: '1px solid var(--border)', borderRadius: '12px',
+                            boxShadow: 'var(--shadow-lg)'
+                        } : {
+                            position: 'fixed', right: 0, top: '52px', bottom: 0, width: '450px',
+                            margin: 0, borderLeft: '1px solid var(--border)',
+                            boxShadow: '-10px 0 30px rgba(0,0,0,0.05)'
+                        }),
+                        overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '24px',
+                        zIndex: isPanelExpanded ? 9999 : 1000, backgroundColor: 'var(--bg-card)', backdropFilter: 'var(--glass-blur)',
+                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}>
+
+                        {/* Modal Header with View Toggle */}
+                        <div style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: isPanelExpanded ? '20px 30px' : '0 0 16px 0',
+                            marginBottom: isPanelExpanded ? '0' : '16px',
+                            borderBottom: isPanelExpanded ? 'none' : '1px solid var(--border)',
+                            transition: 'padding 0.4s ease'
                         }}>
-
-                            {/* Modal Header with View Toggle */}
-                            <div style={{
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                padding: isPanelExpanded ? '20px 30px' : '0 0 16px 0',
-                                marginBottom: isPanelExpanded ? '0' : '16px',
-                                borderBottom: isPanelExpanded ? 'none' : '1px solid var(--border)',
-                                transition: 'padding 0.4s ease'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <h3 style={{ margin: '0', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)' }}>
-                                        #{selectedTicket.ticket_id}
-                                        <span style={{
-                                            backgroundColor: selectedTicket.status === 'Closed' ? 'var(--bg-main)' : selectedTicket.status === 'Resolved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                                            color: selectedTicket.status === 'Closed' ? 'var(--text-muted)' : selectedTicket.status === 'Resolved' ? '#10b981' : '#3b82f6',
-                                            padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold'
-                                        }}>{selectedTicket.closure_type === 'Declined' ? 'Declined' : selectedTicket.status}</span>
-                                    </h3>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <button onClick={() => setIsPanelExpanded(!isPanelExpanded)} style={{ background: 'none', border: 'none', color: isPanelExpanded ? '#4b5563' : '#a1a1aa', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                                        {isPanelExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                                    </button>
-                                    <button onClick={() => setSelectedTicket(null)} style={{ background: 'none', border: 'none', color: isPanelExpanded ? '#4b5563' : '#a1a1aa', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                                        <X size={20} />
-                                    </button>
-                                </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <h3 style={{ margin: '0', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)' }}>
+                                    #{selectedTicket.ticket_id}
+                                    <span style={{
+                                        backgroundColor: selectedTicket.status === 'Closed' ? 'var(--bg-main)' : selectedTicket.status === 'Resolved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                                        color: selectedTicket.status === 'Closed' ? 'var(--text-muted)' : selectedTicket.status === 'Resolved' ? '#10b981' : '#3b82f6',
+                                        padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold'
+                                    }}>{selectedTicket.closure_type === 'Declined' ? 'Declined' : selectedTicket.status}</span>
+                                </h3>
                             </div>
 
-                            {/* --- PANEL TABS --- */}
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: isPanelExpanded ? 'center' : 'flex-start',
-                                width: '100%',
-                                borderBottom: '1px solid #e5e7eb',
-                                padding: isPanelExpanded ? '0 30px' : '0',
-                                marginBottom: '20px'
-                            }}>
-                                <div style={{ display: 'flex', width: isPanelExpanded ? '60%' : '100%' }}>
-                                    <button
-                                        onClick={() => setActivePanelTab('details')}
-                                        style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'details' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderBottom: activePanelTab === 'details' ? '2px solid var(--primary)' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                                    >
-                                        <FileText size={16} /> Details
-                                    </button>
-                                    <button
-                                        onClick={() => setActivePanelTab('timeline')}
-                                        style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'timeline' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderBottom: activePanelTab === 'timeline' ? '2px solid var(--primary)' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                                    >
-                                        <Clock size={16} /> Timeline
-                                    </button>
-                                    <button
-                                        onClick={() => setActivePanelTab('chat')}
-                                        style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'chat' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderBottom: activePanelTab === 'chat' ? '2px solid var(--primary)' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                                    >
-                                        <MessageSquare size={16} /> Chat
-                                    </button>
-                                </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <button onClick={() => setIsPanelExpanded(!isPanelExpanded)} style={{ background: 'none', border: 'none', color: isPanelExpanded ? '#4b5563' : '#a1a1aa', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                                    {isPanelExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                                </button>
+                                <button onClick={() => setSelectedTicket(null)} style={{ background: 'none', border: 'none', color: isPanelExpanded ? '#4b5563' : '#a1a1aa', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                                    <X size={20} />
+                                </button>
                             </div>
+                        </div>
 
-                            {/* Tab Content Wrap */}
-                            <div style={{ flex: activePanelTab === 'details' ? 'none' : 1, overflowY: 'auto', padding: isPanelExpanded ? '0 30px 30px 30px' : '0', display: 'flex', flexDirection: 'column' }}>
-                                {activePanelTab === 'chat' ? (
-                                    <>
-                                        {isPanelExpanded ? (
-                                            <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch', flex: 1, minHeight: 0, paddingBottom: '12px' }}>
-                                                {/* TILE 1: CHAT */}
-                                                <div style={{ flex: '1', minWidth: '300px', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', backgroundColor: 'var(--bg-card)', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', minHeight: 0 }}>
-                                                    <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                                        <div style={{ padding: '4px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <MessageSquare size={14} color="#3b82f6" />
-                                                        </div>
-                                                        Conversation
-                                                    </h4>
-                                                    <div className="chat-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '12px', minHeight: 0 }}>
-                                                        {logsLoading ? (
-                                                            <p style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center' }}>Loading conversation...</p>
-                                                        ) : ticketLogs.length === 0 ? (
-                                                            <p style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center' }}>No history available yet.</p>
-                                                        ) : (
-                                                            ticketLogs.map((log, i) => {
-                                                                const isChat = log.action === 'Chat' || log.action === 'Message';
-                                                                const isMe = log.user === user.email || log.user === user.name || log.user_id === user.email || log.user_id === user.employee_id;
-                                                                if (!isChat) return null;
-                                                                return (
-                                                                    <div key={i} className={isMe ? 'chat-bubble-me' : 'chat-bubble-other'} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '85%', borderRadius: '8px', padding: '10px 12px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-                                                                        <div className="chat-bubble-user" style={{ fontSize: '11px', marginBottom: '4px', fontWeight: 'bold' }}>{log.user || log.user_id || 'System'}</div>
+                        {/* --- PANEL TABS --- */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: isPanelExpanded ? 'center' : 'flex-start',
+                            width: '100%',
+                            borderBottom: '1px solid #e5e7eb',
+                            padding: isPanelExpanded ? '0 30px' : '0',
+                            marginBottom: '20px'
+                        }}>
+                            <div style={{ display: 'flex', width: isPanelExpanded ? '60%' : '100%' }}>
+                                <button
+                                    onClick={() => setActivePanelTab('details')}
+                                    style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'details' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderBottom: activePanelTab === 'details' ? '2px solid var(--primary)' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                >
+                                    <FileText size={16} /> Details
+                                </button>
+                                <button
+                                    onClick={() => setActivePanelTab('timeline')}
+                                    style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'timeline' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderBottom: activePanelTab === 'timeline' ? '2px solid var(--primary)' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                >
+                                    <Clock size={16} /> Timeline
+                                </button>
+                                <button
+                                    onClick={() => setActivePanelTab('chat')}
+                                    style={{ flex: 1, backgroundColor: 'transparent', color: activePanelTab === 'chat' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderBottom: activePanelTab === 'chat' ? '2px solid var(--primary)' : '2px solid transparent', fontWeight: 'bold', padding: '12px 16px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                >
+                                    <MessageSquare size={16} /> Chat
+                                </button>
+                            </div>
+                        </div>
 
-                                                                        {log.attachment && String(log.attachment).toLowerCase() !== 'nan' && (
-                                                                            <div style={{ marginBottom: '8px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', maxWidth: '100%' }} onClick={() => window.open(`http://localhost:5000/uploads/${log.attachment}`, '_blank')}>
-                                                                                <img src={`http://localhost:5000/uploads/${log.attachment}`} alt="Attached" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
-                                                                            </div>
-                                                                        )}
-
-                                                                        <div className="chat-bubble-text" style={{ fontSize: '12px', lineHeight: '1.4' }}>{log.remarks || log.details}</div>
-                                                                        <div className="chat-bubble-time" style={{ fontSize: '10px', marginTop: '6px', textAlign: 'right' }}>{log.timestamp}</div>
-                                                                    </div>
-                                                                );
-                                                            })
-                                                        )}
+                        {/* Tab Content Wrap */}
+                        <div style={{ flex: activePanelTab === 'details' ? 'none' : 1, overflowY: 'auto', padding: isPanelExpanded ? '0 30px 30px 30px' : '0', display: 'flex', flexDirection: 'column' }}>
+                            {activePanelTab === 'chat' ? (
+                                <>
+                                    {isPanelExpanded ? (
+                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch', flex: 1, minHeight: 0, paddingBottom: '12px' }}>
+                                            {/* TILE 1: CHAT */}
+                                            <div style={{ flex: '1', minWidth: '300px', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', backgroundColor: 'var(--bg-card)', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', minHeight: 0 }}>
+                                                <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                                    <div style={{ padding: '4px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <MessageSquare size={14} color="#3b82f6" />
                                                     </div>
-                                                    {selectedTicket.status === 'Closed' ? (
-                                                        <div style={{ marginTop: '16px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>
-                                                            This ticket is closed. New messages cannot be sent.
-                                                        </div>
-                                                    ) : (
-                                                        <form onSubmit={handleSendChat} style={{ display: 'flex', gap: '8px', marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px', flexShrink: 0, alignItems: 'center' }}>
-                                                            {!chatFile ? (
-                                                                <label style={{ cursor: 'pointer', padding: '10px 14px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Attach Image">
-                                                                    <Paperclip size={16} color="var(--text-muted)" />
-                                                                    <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => setChatFile(e.target.files[0])} />
-                                                                </label>
-                                                            ) : (
-                                                                <div style={{ position: 'relative', height: '36px', width: '48px', borderRadius: '6px', border: '2px solid #10b981', flexShrink: 0 }}>
-                                                                    <img src={URL.createObjectURL(chatFile)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
-                                                                    <button type="button" onClick={() => setChatFile(null)} style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3px', borderRadius: '50%', zIndex: 10 }}>
-                                                                        <X size={12} />
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                            <input
-                                                                type="text"
-                                                                className="form-control"
-                                                                value={chatInput}
-                                                                onChange={e => setChatInput(e.target.value)}
-                                                                placeholder="Type a message to the requestor..."
-                                                                style={{ margin: 0, flex: 1, fontSize: '12px', padding: '10px 14px', borderRadius: '8px' }}
-                                                            />
-                                                            <button type="submit" className="btn" style={{ backgroundColor: '#10b981', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', fontWeight: '600' }}>Send</button>
-                                                        </form>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                                                <div className="chat-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    Conversation
+                                                </h4>
+                                                <div className="chat-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '12px', minHeight: 0 }}>
                                                     {logsLoading ? (
-                                                        <p style={{ color: '#71717a', fontSize: '10px', textAlign: 'center' }}>Loading conversation...</p>
+                                                        <p style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center' }}>Loading conversation...</p>
                                                     ) : ticketLogs.length === 0 ? (
-                                                        <p style={{ color: '#71717a', fontSize: '10px', textAlign: 'center' }}>No history available yet.</p>
+                                                        <p style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center' }}>No history available yet.</p>
                                                     ) : (
                                                         ticketLogs.map((log, i) => {
                                                             const isChat = log.action === 'Chat' || log.action === 'Message';
@@ -771,37 +710,37 @@ const SolverDashboard = ({ user, setUser }) => {
                                                             if (!isChat) return null;
                                                             return (
                                                                 <div key={i} className={isMe ? 'chat-bubble-me' : 'chat-bubble-other'} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '85%', borderRadius: '8px', padding: '10px 12px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-                                                                    <div className="chat-bubble-user" style={{ fontSize: '10px', marginBottom: '4px', fontWeight: 'bold' }}>{log.user || log.user_id || 'System'}</div>
-
+                                                                    <div className="chat-bubble-user" style={{ fontSize: '11px', marginBottom: '4px', fontWeight: 'bold' }}>{log.user || log.user_id || 'System'}</div>
+                                                                    
                                                                     {log.attachment && String(log.attachment).toLowerCase() !== 'nan' && (
                                                                         <div style={{ marginBottom: '8px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', maxWidth: '100%' }} onClick={() => window.open(`http://localhost:5000/uploads/${log.attachment}`, '_blank')}>
                                                                             <img src={`http://localhost:5000/uploads/${log.attachment}`} alt="Attached" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
                                                                         </div>
                                                                     )}
-
-                                                                    <div className="chat-bubble-text" style={{ fontSize: '11px', lineHeight: '1.4' }}>{log.remarks || log.details}</div>
-                                                                    <div className="chat-bubble-time" style={{ fontSize: '9px', marginTop: '6px', textAlign: 'right' }}>{log.timestamp}</div>
+                                                                    
+                                                                    <div className="chat-bubble-text" style={{ fontSize: '12px', lineHeight: '1.4' }}>{log.remarks || log.details}</div>
+                                                                    <div className="chat-bubble-time" style={{ fontSize: '10px', marginTop: '6px', textAlign: 'right' }}>{log.timestamp}</div>
                                                                 </div>
                                                             );
                                                         })
                                                     )}
                                                 </div>
                                                 {selectedTicket.status === 'Closed' ? (
-                                                    <div style={{ marginTop: '12px', padding: '10px', textAlign: 'center', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-muted)', fontSize: '11px' }}>
+                                                    <div style={{ marginTop: '16px', padding: '12px', textAlign: 'center', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>
                                                         This ticket is closed. New messages cannot be sent.
                                                     </div>
                                                 ) : (
-                                                    <form onSubmit={handleSendChat} style={{ display: 'flex', gap: '8px', marginTop: '12px', alignItems: 'center' }}>
+                                                    <form onSubmit={handleSendChat} style={{ display: 'flex', gap: '8px', marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px', flexShrink: 0, alignItems: 'center' }}>
                                                         {!chatFile ? (
-                                                            <label style={{ cursor: 'pointer', padding: '6px 8px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Attach Image">
-                                                                <Paperclip size={14} color="var(--text-muted)" />
+                                                            <label style={{ cursor: 'pointer', padding: '10px 14px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Attach Image">
+                                                                <Paperclip size={16} color="var(--text-muted)" />
                                                                 <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => setChatFile(e.target.files[0])} />
                                                             </label>
                                                         ) : (
-                                                            <div style={{ position: 'relative', height: '28px', width: '36px', borderRadius: '4px', border: '1px solid #10b981', flexShrink: 0 }}>
-                                                                <img src={URL.createObjectURL(chatFile)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '3px' }} />
-                                                                <button type="button" onClick={() => setChatFile(null)} style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px', borderRadius: '50%', zIndex: 10 }}>
-                                                                    <X size={10} />
+                                                            <div style={{ position: 'relative', height: '36px', width: '48px', borderRadius: '6px', border: '2px solid #10b981', flexShrink: 0 }}>
+                                                                <img src={URL.createObjectURL(chatFile)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                                                                <button type="button" onClick={() => setChatFile(null)} style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3px', borderRadius: '50%', zIndex: 10 }}>
+                                                                    <X size={12} />
                                                                 </button>
                                                             </div>
                                                         )}
@@ -811,231 +750,292 @@ const SolverDashboard = ({ user, setUser }) => {
                                                             value={chatInput}
                                                             onChange={e => setChatInput(e.target.value)}
                                                             placeholder="Type a message to the requestor..."
-                                                            style={{ margin: 0, flex: 1, fontSize: '10px', padding: '8px 12px' }}
+                                                            style={{ margin: 0, flex: 1, fontSize: '12px', padding: '10px 14px', borderRadius: '8px' }}
                                                         />
-                                                        <button type="submit" className="btn" style={{ backgroundColor: '#10b981', fontSize: '10px', padding: '8px 16px' }}>Send</button>
+                                                        <button type="submit" className="btn" style={{ backgroundColor: '#10b981', fontSize: '12px', padding: '10px 20px', borderRadius: '8px', fontWeight: '600' }}>Send</button>
                                                     </form>
                                                 )}
                                             </div>
-                                        )}
-                                    </>
-                                ) : activePanelTab === 'details' ? (
-                                    <>
-                                        {isPanelExpanded ? (
-                                            /* --- EXPANDED HORIZONTAL DETAILS VIEW --- */
-                                            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-                                                {/* ULTRA-MODERN METADATA HEADER */}
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--border)', marginBottom: '16px', flexShrink: 0 }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Raised On</span>
-                                                        <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)' }}>{selectedTicket.timestamp}</span>
-                                                    </div>
-                                                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }}></div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Raiser</span>
-                                                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#3b82f6' }}>{getUserDetails(selectedTicket.raiser_email)}</span>
-                                                    </div>
-                                                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }}></div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Assigned To</span>
-                                                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#3b82f6' }}>{getUserDetails(selectedTicket.assigned_to)}</span>
-                                                    </div>
-                                                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }}></div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Location</span>
-                                                        <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)' }}>{selectedTicket.location}</span>
-                                                    </div>
-                                                    {selectedTicket.deadline && (
-                                                        <>
-                                                            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }}></div>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Deadline</span>
-                                                                <span style={{ fontSize: '12px', fontWeight: '700', color: '#ef4444' }}>{selectedTicket.deadline}</span>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                                            <div className="chat-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                {logsLoading ? (
+                                                    <p style={{ color: '#71717a', fontSize: '10px', textAlign: 'center' }}>Loading conversation...</p>
+                                                ) : ticketLogs.length === 0 ? (
+                                                    <p style={{ color: '#71717a', fontSize: '10px', textAlign: 'center' }}>No history available yet.</p>
+                                                ) : (
+                                                    ticketLogs.map((log, i) => {
+                                                        const isChat = log.action === 'Chat' || log.action === 'Message';
+                                                        const isMe = log.user === user.email || log.user === user.name || log.user_id === user.email || log.user_id === user.employee_id;
+                                                        if (!isChat) return null;
+                                                        return (
+                                                            <div key={i} className={isMe ? 'chat-bubble-me' : 'chat-bubble-other'} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '85%', borderRadius: '8px', padding: '10px 12px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
+                                                                <div className="chat-bubble-user" style={{ fontSize: '10px', marginBottom: '4px', fontWeight: 'bold' }}>{log.user || log.user_id || 'System'}</div>
+                                                                
+                                                                {log.attachment && String(log.attachment).toLowerCase() !== 'nan' && (
+                                                                    <div style={{ marginBottom: '8px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', maxWidth: '100%' }} onClick={() => window.open(`http://localhost:5000/uploads/${log.attachment}`, '_blank')}>
+                                                                        <img src={`http://localhost:5000/uploads/${log.attachment}`} alt="Attached" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                <div className="chat-bubble-text" style={{ fontSize: '11px', lineHeight: '1.4' }}>{log.remarks || log.details}</div>
+                                                                <div className="chat-bubble-time" style={{ fontSize: '9px', marginTop: '6px', textAlign: 'right' }}>{log.timestamp}</div>
                                                             </div>
-                                                        </>
-                                                    )}
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                            {selectedTicket.status === 'Closed' ? (
+                                                <div style={{ marginTop: '12px', padding: '10px', textAlign: 'center', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-muted)', fontSize: '11px' }}>
+                                                    This ticket is closed. New messages cannot be sent.
                                                 </div>
+                                            ) : (
+                                                <form onSubmit={handleSendChat} style={{ display: 'flex', gap: '8px', marginTop: '12px', alignItems: 'center' }}>
+                                                    {!chatFile ? (
+                                                        <label style={{ cursor: 'pointer', padding: '6px 8px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Attach Image">
+                                                            <Paperclip size={14} color="var(--text-muted)" />
+                                                            <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => setChatFile(e.target.files[0])} />
+                                                        </label>
+                                                    ) : (
+                                                        <div style={{ position: 'relative', height: '28px', width: '36px', borderRadius: '4px', border: '1px solid #10b981', flexShrink: 0 }}>
+                                                            <img src={URL.createObjectURL(chatFile)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '3px' }} />
+                                                            <button type="button" onClick={() => setChatFile(null)} style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px', borderRadius: '50%', zIndex: 10 }}>
+                                                                <X size={10} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={chatInput}
+                                                        onChange={e => setChatInput(e.target.value)}
+                                                        placeholder="Type a message to the requestor..."
+                                                        style={{ margin: 0, flex: 1, fontSize: '10px', padding: '8px 12px' }}
+                                                    />
+                                                    <button type="submit" className="btn" style={{ backgroundColor: '#10b981', fontSize: '10px', padding: '8px 16px' }}>Send</button>
+                                                </form>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : activePanelTab === 'details' ? (
+                                <>
+                                    {isPanelExpanded ? (
+                                        /* --- EXPANDED HORIZONTAL DETAILS VIEW --- */
+                                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+                                            {/* ULTRA-MODERN METADATA HEADER */}
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--border)', marginBottom: '16px', flexShrink: 0 }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Raised On</span>
+                                                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)' }}>{selectedTicket.timestamp}</span>
+                                                </div>
+                                                <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }}></div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Raiser</span>
+                                                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#3b82f6' }}>{getUserDetails(selectedTicket.raiser_email)}</span>
+                                                </div>
+                                                <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }}></div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Assigned To</span>
+                                                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#3b82f6' }}>{getUserDetails(selectedTicket.assigned_to)}</span>
+                                                </div>
+                                                <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }}></div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Location</span>
+                                                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)' }}>{selectedTicket.location}</span>
+                                                </div>
+                                                {selectedTicket.deadline && (
+                                                    <>
+                                                        <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }}></div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '700' }}>Deadline</span>
+                                                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#ef4444' }}>{selectedTicket.deadline}</span>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
 
-                                                <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch', flex: 1, minHeight: 0 }}>
+                                            <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch', flex: 1, minHeight: 0 }}>
+                                                
+                                                {/* TILE 1: IMAGE PREVIEW (If any) */}
+                                                {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (() => {
+                                                    const attachStr = String(selectedTicket.attachment);
+                                                    const isImage = attachStr.startsWith('data:image/') || attachStr.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+                                                    const fileUrl = attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`;
 
-                                                    {/* TILE 1: IMAGE PREVIEW (If any) */}
+                                                    if (isImage) {
+                                                        return (
+                                                            <div 
+                                                                style={{ flex: '0.8', minWidth: '220px', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', position: 'relative', border: '1px solid var(--border)', backgroundColor: '#000', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
+                                                                onClick={() => window.open(fileUrl, '_blank')}
+                                                                title="Click to view full size"
+                                                            >
+                                                                <img src={fileUrl} alt="Attachment" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.95, transition: 'opacity 0.4s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)' }} onMouseOver={e => { e.currentTarget.style.opacity = 1; e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseOut={e => { e.currentTarget.style.opacity = 0.95; e.currentTarget.style.transform = 'scale(1)'; }} />
+                                                                <div style={{ position: 'absolute', bottom: 12, right: 12, padding: '6px 12px', backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', color: 'white', fontSize: '11px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
+                                                                    <Maximize2 size={12} /> View Full
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+
+                                                {/* TILE 2: DESCRIPTION */}
+                                                <div style={{ flex: '1.2', minWidth: '280px', display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', borderRadius: '12px', backgroundColor: 'var(--bg-card)', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', minHeight: 0 }}>
+                                                    <h4 style={{ margin: '0 0 12px 0', color: 'var(--text-main)', fontSize: '14px', fontWeight: '700', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                                        <div style={{ padding: '4px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <FileText size={14} color="#3b82f6" />
+                                                        </div>
+                                                        Issue Description
+                                                    </h4>
+                                                    
+                                                    <div style={{ flex: 1, fontSize: '12px', color: 'var(--text-main)', lineHeight: '1.7', whiteSpace: 'pre-wrap', overflowY: 'auto', paddingRight: '8px', minHeight: 0 }}>
+                                                        {selectedTicket.description}
+                                                    </div>
+
                                                     {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (() => {
                                                         const attachStr = String(selectedTicket.attachment);
                                                         const isImage = attachStr.startsWith('data:image/') || attachStr.match(/\.(jpeg|jpg|gif|png|webp)$/i);
                                                         const fileUrl = attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`;
 
-                                                        if (isImage) {
+                                                        if (!isImage) {
                                                             return (
-                                                                <div
-                                                                    style={{ flex: '0.8', minWidth: '220px', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', position: 'relative', border: '1px solid var(--border)', backgroundColor: '#000', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
-                                                                    onClick={() => window.open(fileUrl, '_blank')}
-                                                                    title="Click to view full size"
-                                                                >
-                                                                    <img src={fileUrl} alt="Attachment" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.95, transition: 'opacity 0.4s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)' }} onMouseOver={e => { e.currentTarget.style.opacity = 1; e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseOut={e => { e.currentTarget.style.opacity = 0.95; e.currentTarget.style.transform = 'scale(1)'; }} />
-                                                                    <div style={{ position: 'absolute', bottom: 12, right: 12, padding: '6px 12px', backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', color: 'white', fontSize: '11px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
-                                                                        <Maximize2 size={12} /> View Full
-                                                                    </div>
+                                                                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+                                                                    <h5 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '600', color: 'var(--text-main)' }}>Attached Documents</h5>
+                                                                    <a href={fileUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '6px', color: '#3b82f6', textDecoration: 'none', fontSize: '11px', fontWeight: '600', transition: 'all 0.2s' }} onMouseOver={e => { e.currentTarget.style.borderColor = '#3b82f6'; }} onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                                                                        <Paperclip size={14} /> Download File
+                                                                    </a>
                                                                 </div>
                                                             );
                                                         }
                                                         return null;
                                                     })()}
-
-                                                    {/* TILE 2: DESCRIPTION */}
-                                                    <div style={{ flex: '1.2', minWidth: '280px', display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', borderRadius: '12px', backgroundColor: 'var(--bg-card)', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', minHeight: 0 }}>
-                                                        <h4 style={{ margin: '0 0 12px 0', color: 'var(--text-main)', fontSize: '14px', fontWeight: '700', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                                            <div style={{ padding: '4px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                <FileText size={14} color="#3b82f6" />
-                                                            </div>
-                                                            Issue Description
-                                                        </h4>
-
-                                                        <div style={{ flex: 1, fontSize: '12px', color: 'var(--text-main)', lineHeight: '1.7', whiteSpace: 'pre-wrap', overflowY: 'auto', paddingRight: '8px', minHeight: 0 }}>
-                                                            {selectedTicket.description}
-                                                        </div>
-
-                                                        {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (() => {
-                                                            const attachStr = String(selectedTicket.attachment);
-                                                            const isImage = attachStr.startsWith('data:image/') || attachStr.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-                                                            const fileUrl = attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`;
-
-                                                            if (!isImage) {
-                                                                return (
-                                                                    <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-                                                                        <h5 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '600', color: 'var(--text-main)' }}>Attached Documents</h5>
-                                                                        <a href={fileUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '6px', color: '#3b82f6', textDecoration: 'none', fontSize: '11px', fontWeight: '600', transition: 'all 0.2s' }} onMouseOver={e => { e.currentTarget.style.borderColor = '#3b82f6'; }} onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}>
-                                                                            <Paperclip size={14} /> Download File
-                                                                        </a>
-                                                                    </div>
-                                                                );
-                                                            }
-                                                            return null;
-                                                        })()}
-                                                    </div>
-
-                                                    {/* TILE 3: ACTION PANEL */}
-                                                    <div style={{ flex: '1.4', minWidth: '320px', display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', borderRadius: '12px', backgroundColor: 'var(--bg-card)', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', minHeight: 0 }}>
-                                                        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '700', letterSpacing: '-0.01em', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                                            <div style={{ padding: '4px', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                <Zap size={14} color="#10b981" />
-                                                            </div>
-                                                            Take Action
-                                                        </h4>
-                                                        <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', minHeight: 0 }}>
-                                                            {renderActionForms()}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            /* --- ORIGINAL TICKET DETAILS VIEW --- */
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '16px' }}>
-                                                {/* METADATA GRID (Stacked Labels) */}
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '20px', columnGap: '16px', padding: '16px', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Raised On</span>
-                                                        <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500' }}>{selectedTicket.timestamp ? selectedTicket.timestamp.split(' ')[0] : 'N/A'}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Requestor</span>
-                                                        <span style={{ color: '#3b82f6', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{getUserDetails(selectedTicket.raiser_email)}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</span>
-                                                        <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{selectedTicket.location}</span>
-                                                    </div>
-                                                    {selectedTicket.deadline && (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Deadline</span>
-                                                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#10b981' }}>{selectedTicket.deadline.split(' ')[0] || selectedTicket.deadline.split(' ')[1] || selectedTicket.deadline}</span>
-                                                        </div>
-                                                    )}
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: selectedTicket.deadline ? 'auto' : '1 / -1' }}>
-                                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Issue Type</span>
-                                                        <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{selectedTicket.issue_type}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SLA Score</span>
-                                                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: selectedTicket.total_score >= 10 ? '#ef4444' : '#10b981' }}>{selectedTicket.total_score} pts</span>
-                                                    </div>
                                                 </div>
 
-                                                {/* ISSUE DESCRIPTION & ATTACHMENT ROW */}
-                                                <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch' }}>
-                                                    <div style={{ flex: 1, minWidth: 0, border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', backgroundColor: 'var(--bg-card)' }}>
-                                                        <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Issue Description:</strong>
-                                                        <div style={{ color: 'var(--text-main)', whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto', paddingRight: '4px', fontSize: '13px', lineHeight: '1.6' }}>{selectedTicket.description}</div>
-                                                    </div>
-                                                    {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (
-                                                        <div style={{ width: '100px', flexShrink: 0 }}>
-                                                            <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Attached File:</strong>
-                                                            <img
-                                                                src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `http://localhost:5000/uploads/${selectedTicket.attachment}`}
-                                                                onClick={() => {
-                                                                    const attachStr = String(selectedTicket.attachment);
-                                                                    window.open(attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`, '_blank');
-                                                                }}
-                                                                style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-                                                                alt="Attachment"
-                                                                title="Click to view full size"
-                                                            />
+                                                {/* TILE 3: ACTION PANEL */}
+                                                <div style={{ flex: '1.4', minWidth: '320px', display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', borderRadius: '12px', backgroundColor: 'var(--bg-card)', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', minHeight: 0 }}>
+                                                    <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '700', letterSpacing: '-0.01em', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                                        <div style={{ padding: '4px', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <Zap size={14} color="#10b981" />
                                                         </div>
-                                                    )}
-                                                </div>
-
-                                                {/* --- VERTICAL AUDIT TRAIL TIMELINE --- */}
-                                                {logsLoading && <p style={{ color: '#71717a', fontSize: '12px', padding: '10px 0' }}>Loading ticket history...</p>}
-
-                                                {/* ACTION FORMS INSIDE SCROLLABLE AREA */}
-                                                {!isPanelExpanded && (
-                                                    <div style={{
-                                                        borderTop: '1px solid var(--border)',
-                                                        paddingTop: '12px',
-                                                        marginTop: '8px'
-                                                    }}>
+                                                        Take Action
+                                                    </h4>
+                                                    <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', minHeight: 0 }}>
                                                         {renderActionForms()}
                                                     </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </>
-                                ) : activePanelTab === 'timeline' ? (
-                                    <>
-                                        {isPanelExpanded ? (
-                                            <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch', flex: 1, minHeight: 0, paddingBottom: '12px' }}>
-                                                {/* TILE 1: TIMELINE */}
-                                                <div style={{ flex: '1', minWidth: '300px', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', backgroundColor: 'var(--bg-card)', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', minHeight: 0 }}>
-                                                    <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                                        <div style={{ padding: '4px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <FileText size={14} color="#3b82f6" />
-                                                        </div>
-                                                        Ticket Timeline
-                                                    </h4>
-                                                    <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', minHeight: 0 }}>
-                                                        {!logsLoading && ticketLogs.length > 0 ? (
-                                                            <TicketTimeline logs={ticketLogs} userRole={user?.role} />
-                                                        ) : (
-                                                            <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', marginTop: '20px' }}>No timeline history available.</p>
-                                                        )}
-                                                    </div>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div style={{ flex: 1, overflowY: 'auto' }}>
-                                                {!logsLoading && ticketLogs.length > 0 ? (
-                                                    <TicketTimeline logs={ticketLogs} userRole={user?.role} />
-                                                ) : (
-                                                    <p style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', marginTop: '20px' }}>No timeline history available.</p>
+                                        </div>
+                                    ) : (
+                                        /* --- ORIGINAL TICKET DETAILS VIEW --- */
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '16px' }}>
+                                            {/* METADATA GRID (Stacked Labels) */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '20px', columnGap: '16px', padding: '16px', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Raised On</span>
+                                                    <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500' }}>{selectedTicket.timestamp ? selectedTicket.timestamp.split(' ')[0] : 'N/A'}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Requestor</span>
+                                                    <span style={{ color: '#3b82f6', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{getUserDetails(selectedTicket.raiser_email)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</span>
+                                                    <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{selectedTicket.location}</span>
+                                                </div>
+                                                {selectedTicket.deadline && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Deadline</span>
+                                                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#10b981' }}>{selectedTicket.deadline.split(' ')[0] || selectedTicket.deadline.split(' ')[1] || selectedTicket.deadline}</span>
+                                                    </div>
+                                                )}
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: selectedTicket.deadline ? 'auto' : '1 / -1' }}>
+                                                    <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Issue Type</span>
+                                                    <span style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: '500', wordBreak: 'break-word' }}>{selectedTicket.issue_type}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SLA Score</span>
+                                                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: selectedTicket.total_score >= 10 ? '#ef4444' : '#10b981' }}>{selectedTicket.total_score} pts</span>
+                                                </div>
+                                            </div>
+
+                                            {/* ISSUE DESCRIPTION & ATTACHMENT ROW */}
+                                            <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch' }}>
+                                                <div style={{ flex: 1, minWidth: 0, border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', backgroundColor: 'var(--bg-card)' }}>
+                                                    <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Issue Description:</strong>
+                                                    <div style={{ color: 'var(--text-main)', whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto', paddingRight: '4px', fontSize: '13px', lineHeight: '1.6' }}>{selectedTicket.description}</div>
+                                                </div>
+                                                {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (
+                                                    <div style={{ width: '100px', flexShrink: 0 }}>
+                                                        <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Attached File:</strong>
+                                                        <img 
+                                                            src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `http://localhost:5000/uploads/${selectedTicket.attachment}`}
+                                                            onClick={() => {
+                                                                const attachStr = String(selectedTicket.attachment);
+                                                                window.open(attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`, '_blank');
+                                                            }}
+                                                            style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                                                            alt="Attachment"
+                                                            title="Click to view full size"
+                                                        />
+                                                    </div>
                                                 )}
                                             </div>
-                                        )}
-                                    </>
-                                ) : null}
-                            </div>
 
+                                            {/* --- VERTICAL AUDIT TRAIL TIMELINE --- */}
+                                            {logsLoading && <p style={{ color: '#71717a', fontSize: '12px', padding: '10px 0' }}>Loading ticket history...</p>}
+
+                                            {/* ACTION FORMS INSIDE SCROLLABLE AREA */}
+                                            {!isPanelExpanded && (
+                                                <div style={{ 
+                                                    borderTop: '1px solid var(--border)', 
+                                                    paddingTop: '12px', 
+                                                    marginTop: '8px'
+                                                }}>
+                                                    {renderActionForms()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : activePanelTab === 'timeline' ? (
+                                <>
+                                    {isPanelExpanded ? (
+                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch', flex: 1, minHeight: 0, paddingBottom: '12px' }}>
+                                            {/* TILE 1: TIMELINE */}
+                                            <div style={{ flex: '1', minWidth: '300px', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', backgroundColor: 'var(--bg-card)', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', minHeight: 0 }}>
+                                                <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                                    <div style={{ padding: '4px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <FileText size={14} color="#3b82f6" />
+                                                    </div>
+                                                    Ticket Timeline
+                                                </h4>
+                                                <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', minHeight: 0 }}>
+                                                    {!logsLoading && ticketLogs.length > 0 ? (
+                                                        <TicketTimeline logs={ticketLogs} userRole={user?.role} />
+                                                    ) : (
+                                                        <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', marginTop: '20px' }}>No timeline history available.</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                                            {!logsLoading && ticketLogs.length > 0 ? (
+                                                <TicketTimeline logs={ticketLogs} userRole={user?.role} />
+                                            ) : (
+                                                <p style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', marginTop: '20px' }}>No timeline history available.</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : null}
                         </div>
-                    </>
-                )}
+                        
+                    </div>
+                </>
+            )}
             </div>
         </Layout>
     );

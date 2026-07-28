@@ -259,7 +259,7 @@ const CalendarModal = ({ user, isDarkMode, onClose }) => {
                                             }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                                     <span style={{ fontSize: '11px', fontWeight: 'bold' }}>#{t.ticket_id}</span>
-                                                    <span style={{ fontSize: '9px', backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '2px 6px', borderRadius: '8px' }}>{t.status}</span>
+                                                    <span style={{ fontSize: '9px', backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '2px 6px', borderRadius: '8px' }}>{t.closure_type === 'Declined' ? 'Declined' : t.status}</span>
                                                 </div>
                                                 <div style={{ fontSize: '10px', color: isDarkMode ? '#d4d4d4' : '#0f172a', marginBottom: '4px' }}>{t.issue_category}</div>
                                                 <div style={{ fontSize: '10px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Assigned: {t.dept_assigned}</div>
@@ -312,7 +312,7 @@ const CalendarModal = ({ user, isDarkMode, onClose }) => {
                                             }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                                     <span style={{ fontSize: '11px', fontWeight: 'bold' }}>#{t.ticket_id}</span>
-                                                    <span style={{ fontSize: '9px', backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '2px 6px', borderRadius: '8px' }}>{t.status}</span>
+                                                    <span style={{ fontSize: '9px', backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '2px 6px', borderRadius: '8px' }}>{t.closure_type === 'Declined' ? 'Declined' : t.status}</span>
                                                 </div>
                                                 <div style={{ fontSize: '10px', color: isDarkMode ? '#d4d4d4' : '#0f172a', marginBottom: '4px' }}>{t.issue_category}</div>
                                                 <div style={{ fontSize: '10px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Raiser: {t.raiser_name || t.raised_by}</div>

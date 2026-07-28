@@ -115,6 +115,18 @@ def _ensure_columns(conn, table_name, df):
             except Exception as e:
                 print(f"Warning: Could not add column {col}: {e}")
 
+def _reset_sequence(conn, table_name):
+    from sqlalchemy import text
+    try:
+        res = conn.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND column_name='id'"))
+        if res.fetchone():
+            seq_res = conn.execute(text(f"SELECT pg_get_serial_sequence('{table_name}', 'id')"))
+            seq_row = seq_res.fetchone()
+            if seq_row and seq_row[0]:
+                conn.execute(text(f"SELECT setval('{seq_row[0]}', COALESCE((SELECT MAX(id) FROM {table_name}), 1), true)"))
+    except Exception as e:
+        print(f"Warning: Could not reset sequence for {table_name}: {e}")
+
 def save_data(df, table_name):
     from sqlalchemy import text
     try:
@@ -125,6 +137,7 @@ def save_data(df, table_name):
                 _ensure_columns(conn, table_name, df)
                 conn.execute(text(f"DELETE FROM {table_name}"))
             df.to_sql(table_name, conn, if_exists='append', index=False)
+            _reset_sequence(conn, table_name)
     except Exception as e:
         print(f"Error saving table {table_name}: {e}")
 
@@ -134,6 +147,7 @@ def append_data(df, table_name):
             if engine.dialect.has_table(conn, table_name):
                 _ensure_columns(conn, table_name, df)
             df.to_sql(table_name, conn, if_exists='append', index=False)
+            _reset_sequence(conn, table_name)
     except Exception as e:
         print(f"Error appending to table {table_name}: {e}")
 
