@@ -673,7 +673,7 @@ const AdminDashboard = ({ user, setUser }) => {
                                                 const id = prompt("Enter the Ticket ID you wish to completely delete:");
                                                 if (id) {
                                                     if (window.confirm(`WARNING: Are you sure you want to PERMANENTLY delete Ticket #${id}? This will also delete all associated chat logs and notifications everywhere. This action cannot be undone.`)) {
-                                                        fetch('http://localhost:5000/api/admin/tickets/delete', {
+                                                        fetch('/api/admin/tickets/delete', {
                                                             method: 'POST',
                                                             headers: { 'Content-Type': 'application/json' },
                                                             body: JSON.stringify({ ticket_id: id.replace('#', '').trim() })
@@ -729,7 +729,7 @@ const AdminDashboard = ({ user, setUser }) => {
                                                 <td style={{ padding: '8px', fontWeight: 'bold', border: '1px solid #27272a' }}>#{a.ticket_id}</td>
                                                 <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #27272a' }}>
                                                     {a.attachment && String(a.attachment).toLowerCase() !== 'nan' ? (
-                                                        <img src={String(a.attachment).startsWith('data:') ? String(a.attachment) : `http://localhost:5000/uploads/${a.attachment}`} style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #3f3f46' }} alt="Attachment" />
+                                                        <img src={String(a.attachment).startsWith('data:') ? String(a.attachment) : `/uploads/${a.attachment}`} style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #3f3f46' }} alt="Attachment" />
                                                     ) : <span style={{ color: '#52525b' }}>-</span>}
                                                 </td>
                                                 <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.dept_assigned}</td>
@@ -1640,10 +1640,10 @@ const AdminDashboard = ({ user, setUser }) => {
                                         <div style={{ width: '100px', flexShrink: 0 }}>
                                             <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Attached File:</strong>
                                             <img 
-                                                src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `http://localhost:5000/uploads/${selectedTicket.attachment}`}
+                                                src={String(selectedTicket.attachment).startsWith('data:') ? String(selectedTicket.attachment) : `/uploads/${selectedTicket.attachment}`}
                                                 onClick={() => {
                                                     const attachStr = String(selectedTicket.attachment);
-                                                    window.open(attachStr.startsWith('data:') ? attachStr : `http://localhost:5000/uploads/${attachStr}`, '_blank');
+                                                    window.open(attachStr.startsWith('data:') ? attachStr : `/uploads/${attachStr}`, '_blank');
                                                 }}
                                                 style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                                                 alt="Attachment"

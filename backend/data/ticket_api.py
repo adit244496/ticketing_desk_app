@@ -362,7 +362,7 @@ def update_ticket_status():
         
     requestor_raw = tickets.loc[tickets['ticket_id'] == ticket_id, 'raiser_email'].values[0]
     solver_raw = tickets.loc[tickets['ticket_id'] == ticket_id, 'assigned_to'].values[0] # This is the Employee ID
-    dept = tickets.loc[tickets['ticket_id'] == ticket_id, 'dept_assigned'].values[0]
+    dept = str(tickets.loc[tickets['ticket_id'] == ticket_id, 'dept_assigned'].values[0]).strip()
     
     requestor = get_user_email(requestor_raw, users) or requestor_raw
     solver = get_user_email(solver_raw, users) or solver_raw
@@ -453,7 +453,7 @@ def update_ticket_status():
                 
     dept_head_email = None
     if not users.empty:
-        dept_head_row = users[(users['department'] == dept) & (users['role'].str.contains('Dept', case=False, na=False))]
+        dept_head_row = users[(users['department'].str.strip() == dept) & (users['role'].str.contains('Dept', case=False, na=False))]
         if not dept_head_row.empty:
             dept_head_email = dept_head_row.iloc[0].get('email')
 
@@ -502,9 +502,9 @@ def request_handover():
     # STORE AS EMP ID
     target_emp_id = get_user_emp_id(target_id, users)
     
-    dept = tickets.loc[tickets['ticket_id'] == ticket_id, 'dept_assigned'].values[0]
+    dept = str(tickets.loc[tickets['ticket_id'] == ticket_id, 'dept_assigned'].values[0]).strip()
     
-    dept_head_row = users[(users['department'] == dept) & (users['role'].str.contains('Dept', case=False, na=False))]
+    dept_head_row = users[(users['department'].str.strip() == dept) & (users['role'].str.contains('Dept', case=False, na=False))]
     if dept_head_row.empty:
         return jsonify({"error": f"Cannot request handover: No Department Head assigned for {dept} to approve the transfer."}), 400
 
