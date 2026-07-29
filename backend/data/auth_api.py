@@ -40,6 +40,9 @@ def login():
     if str(user.get('first_login')).lower() in ['true', '1']:
         return jsonify({"force_reset": True, "email": user['email']}), 200
         
+    if str(user.get('is_active')).lower() in ['false', '0']:
+        return jsonify({"error": "User account is deactivated. Please contact administrator."}), 403
+        
     # Remove sensitive data before sending to React
     del user['password']
     

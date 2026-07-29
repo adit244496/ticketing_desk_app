@@ -14,9 +14,13 @@ def hash_password(password):
 @admin_bp.route('/api/admin/users', methods=['GET'])
 def get_users():
     users = database.load_data('users')
-    # Remove passwords from the API payload for security
     if 'password' in users.columns:
         users = users.drop(columns=['password'])
+    if 'is_active' not in users.columns:
+        users['is_active'] = True
+    else:
+        users['is_active'] = users['is_active'].fillna(True).apply(lambda x: str(x).lower() not in ['false', '0'])
+        
     users = users.where(pd.notnull(users), None)
     return jsonify(users.to_dict(orient='records')), 200
 
@@ -122,6 +126,40 @@ def update_user():
             database.save_data(tickets, 'tickets')
 
     return jsonify({"message": "User updated successfully"}), 200
+
+@admin_bp.route('/api/admin/users/toggle_status', methods=['POST'])
+def toggle_user_status():
+    data = request.json
+    emp_id = data.get('employee_id')
+    new_status = data.get('is_active')
+    
+    if not emp_id:
+        return jsonify({"error": "Employee ID is required"}), 400
+        
+    users = database.load_data('users')
+    
+    if str(emp_id) not in users['employee_id'].astype(str).values:
+        return jsonify({"error": "User not found"}), 404
+        
+    if not new_status:
+        tickets = database.load_data('tickets')
+        if not tickets.empty and 'assigned_to' in tickets.columns and 'status' in tickets.columns:
+            open_tickets = tickets[
+                (tickets['assigned_to'].astype(str) == str(emp_id)) & 
+                (~tickets['status'].isin(['Closed', 'Resolved']))
+            ]
+            
+            if not open_tickets.empty:
+                return jsonify({"error": "There are open tickets assigned to that user. Hand it over to another user first."}), 400
+            
+    mask = users['employee_id'].astype(str) == str(emp_id)
+    if 'is_active' not in users.columns:
+        users['is_active'] = 'True'
+    users.loc[mask, 'is_active'] = str(new_status)
+    database.save_data(users, 'users')
+    
+    return jsonify({"message": f"User successfully {'activated' if new_status else 'deactivated'}"}), 200
+
 
 # --- LOCATION MANAGEMENT ---
 @admin_bp.route('/api/admin/locations', methods=['GET'])

@@ -78,6 +78,11 @@ export const markAllNotificationsRead = async (email) => {
     return response.data;
 };
 
+export const toggleUserStatus = async (data) => {
+    const response = await api.post('/admin/users/toggle_status', data);
+    return response.data;
+};
+
 // --- DEPARTMENT HEAD ---
 export const fetchDeptOverview = async (deptName) => {
     const response = await api.get(`/dept/${deptName}/overview`);
@@ -153,8 +158,8 @@ export const updateMasterRule = async (ruleData) => {
     const user = userStr ? JSON.parse(userStr) : null;
 
     // Route dynamically to the correct Python backend based on role
-    const endpoint = (user?.role === 'Admin' || user?.role === 'Super Admin') 
-        ? '/admin/rules/update' 
+    const endpoint = (user?.role === 'Admin' || user?.role === 'Super Admin')
+        ? '/admin/rules/update'
         : '/dept/rules/update';
 
     const response = await api.post(endpoint, ruleData);

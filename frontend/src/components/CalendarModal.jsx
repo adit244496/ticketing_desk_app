@@ -21,16 +21,19 @@ const CalendarModal = ({ user, isDarkMode, onClose }) => {
                 
                 // Group tickets by ticket_id to avoid L1/L2 duplicates if any, but since we are just checking dates it's fine.
                 // We will filter by user access
-                if (user.role !== 'Admin') {
+                if (user.role !== 'Admin' && user.role !== 'Super Admin' && user.role !== 'Audit') {
                     allTickets = allTickets.filter(t => {
-                        const emailMatches = String(t.raised_by) === String(user.employee_id) ||
-                                             String(t.original_raiser).toLowerCase() === String(user.email).toLowerCase() ||
-                                             String(t.assigned_to).toLowerCase() === String(user.email).toLowerCase();
-                        const idMatches = String(t.assigned_to) === String(user.employee_id);
-                                          
-                        const deptMatches = t.dept_assigned === user.department;
+                        const raiser = String(t.raiser_email || '').toLowerCase().trim();
+                        const assignee = String(t.assigned_to || '').toLowerCase().trim();
                         
-                        return emailMatches || idMatches || deptMatches;
+                        const isRaiser = raiser === String(user.email || '').toLowerCase().trim();
+                        const isAssignee = assignee.includes(String(user.name || '').toLowerCase().trim()) || 
+                                           assignee.includes(String(user.employee_id || '').toLowerCase().trim()) ||
+                                           assignee.includes(String(user.email || '').toLowerCase().trim());
+                        
+                        const isDeptHead = (user.role === 'Dept. Head' || user.role === 'Department Head') && t.dept_assigned === user.department;
+                        
+                        return isRaiser || isAssignee || isDeptHead;
                     });
                 }
                 
@@ -221,48 +224,20 @@ const CalendarModal = ({ user, isDarkMode, onClose }) => {
                                             <Clock size={12} /> Pending Deadlines ({selectedTickets.due.length})
                                         </h4>
                                         {selectedTickets.due.map(t => {
-                                            const handleTicketClick = () => {
-                                                onClose();
-                                                const userEmail = String(user.email || '').toLowerCase().trim();
-                                                const userEmpId = String(user.employee_id || '').toLowerCase().trim();
-                                                const userName = String(user.name || '').toLowerCase().trim();
-                                                const userDept = String(user.department || '').toLowerCase().trim();
-
-                                                const raiserFull = String(t.raised_by || '').toLowerCase() + ' ' + String(t.employee_id || '').toLowerCase() + ' ' + String(t.raiser_name || '').toLowerCase();
-                                                const isRequestor = (userEmail !== '' && raiserFull.includes(userEmail)) || 
-                                                                    (userEmpId !== '' && raiserFull.includes(userEmpId)) || 
-                                                                    (userName !== '' && raiserFull.includes(userName));
-
-                                                const assignedToFull = String(t.assigned_to || '').toLowerCase();
-                                                const ticketDept = String(t.dept_assigned || '').toLowerCase().trim();
-                                                const isSolver = (userEmail !== '' && assignedToFull.includes(userEmail)) || 
-                                                                 (userEmpId !== '' && assignedToFull.includes(userEmpId)) || 
-                                                                 (userName !== '' && assignedToFull.includes(userName)) || 
-                                                                 (ticketDept !== '' && ticketDept === userDept && userDept !== 'unassigned');
-
-                                                if (isRequestor) {
-                                                    navigate(`/requestor?ticket_id=${t.ticket_id}`);
-                                                } else if (isSolver) {
-                                                    navigate(`/solver?ticket_id=${t.ticket_id}`);
-                                                } else if (user.role === 'Admin') {
-                                                    navigate(`/admin?ticket_id=${t.ticket_id}`);
-                                                } else if (user.role === 'Viewer') {
-                                                    navigate(`/viewer?ticket_id=${t.ticket_id}`);
-                                                } else {
-                                                    navigate(`/requestor?ticket_id=${t.ticket_id}`);
-                                                }
-                                            };
+                                            const showRaiser = ['Super Admin', 'Admin', 'Solver', 'Dept. Head', 'Department Head'].includes(user.role);
+                                            const showSolver = ['Super Admin', 'Admin', 'Requestor', 'Dept. Head', 'Department Head'].includes(user.role);
                                             return (
-                                            <div key={`due-${t.ticket_id}`} onClick={handleTicketClick} style={{ 
+                                            <div key={`due-${t.ticket_id}`} style={{ 
                                                 padding: '10px', backgroundColor: isDarkMode ? '#27272a' : '#ffffff', 
-                                                border: `1px solid ${isDarkMode ? '#3f3f46' : '#e2e8f0'}`, borderRadius: '6px', marginBottom: '8px', cursor: 'pointer' 
+                                                border: `1px solid ${isDarkMode ? '#3f3f46' : '#e2e8f0'}`, borderRadius: '6px', marginBottom: '8px' 
                                             }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                                     <span style={{ fontSize: '11px', fontWeight: 'bold' }}>#{t.ticket_id}</span>
                                                     <span style={{ fontSize: '9px', backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '2px 6px', borderRadius: '8px' }}>{t.closure_type === 'Declined' ? 'Declined' : t.status}</span>
                                                 </div>
-                                                <div style={{ fontSize: '10px', color: isDarkMode ? '#d4d4d4' : '#0f172a', marginBottom: '4px' }}>{t.issue_category}</div>
-                                                <div style={{ fontSize: '10px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Assigned: {t.dept_assigned}</div>
+                                                <div style={{ fontSize: '10px', color: isDarkMode ? '#d4d4d4' : '#0f172a', marginBottom: '4px' }}>{t.issue_type}</div>
+                                                {showRaiser && <div style={{ fontSize: '10px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Raiser: {t.raiser_display || t.raiser_email || 'Unknown'}</div>}
+                                                {showSolver && <div style={{ fontSize: '10px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Assigned to: {t.assigned_to || 'Unassigned'}</div>}
                                             </div>
                                         )})}
                                     </div>
@@ -274,48 +249,20 @@ const CalendarModal = ({ user, isDarkMode, onClose }) => {
                                             <Ticket size={12} /> Tickets Created ({selectedTickets.created.length})
                                         </h4>
                                         {selectedTickets.created.map(t => {
-                                            const handleTicketClick = () => {
-                                                onClose();
-                                                const userEmail = String(user.email || '').toLowerCase().trim();
-                                                const userEmpId = String(user.employee_id || '').toLowerCase().trim();
-                                                const userName = String(user.name || '').toLowerCase().trim();
-                                                const userDept = String(user.department || '').toLowerCase().trim();
-
-                                                const raiserFull = String(t.raised_by || '').toLowerCase() + ' ' + String(t.employee_id || '').toLowerCase() + ' ' + String(t.raiser_name || '').toLowerCase();
-                                                const isRequestor = (userEmail !== '' && raiserFull.includes(userEmail)) || 
-                                                                    (userEmpId !== '' && raiserFull.includes(userEmpId)) || 
-                                                                    (userName !== '' && raiserFull.includes(userName));
-
-                                                const assignedToFull = String(t.assigned_to || '').toLowerCase();
-                                                const ticketDept = String(t.dept_assigned || '').toLowerCase().trim();
-                                                const isSolver = (userEmail !== '' && assignedToFull.includes(userEmail)) || 
-                                                                 (userEmpId !== '' && assignedToFull.includes(userEmpId)) || 
-                                                                 (userName !== '' && assignedToFull.includes(userName)) || 
-                                                                 (ticketDept !== '' && ticketDept === userDept && userDept !== 'unassigned');
-
-                                                if (isRequestor) {
-                                                    navigate(`/requestor?ticket_id=${t.ticket_id}`);
-                                                } else if (isSolver) {
-                                                    navigate(`/solver?ticket_id=${t.ticket_id}`);
-                                                } else if (user.role === 'Admin') {
-                                                    navigate(`/admin?ticket_id=${t.ticket_id}`);
-                                                } else if (user.role === 'Viewer') {
-                                                    navigate(`/viewer?ticket_id=${t.ticket_id}`);
-                                                } else {
-                                                    navigate(`/requestor?ticket_id=${t.ticket_id}`);
-                                                }
-                                            };
+                                            const showRaiser = ['Super Admin', 'Admin', 'Solver', 'Dept. Head', 'Department Head'].includes(user.role);
+                                            const showSolver = ['Super Admin', 'Admin', 'Requestor', 'Dept. Head', 'Department Head'].includes(user.role);
                                             return (
-                                            <div key={`created-${t.ticket_id}`} onClick={handleTicketClick} style={{ 
+                                            <div key={`created-${t.ticket_id}`} style={{ 
                                                 padding: '10px', backgroundColor: isDarkMode ? '#27272a' : '#ffffff', 
-                                                border: `1px solid ${isDarkMode ? '#3f3f46' : '#e2e8f0'}`, borderRadius: '6px', marginBottom: '8px', cursor: 'pointer' 
+                                                border: `1px solid ${isDarkMode ? '#3f3f46' : '#e2e8f0'}`, borderRadius: '6px', marginBottom: '8px' 
                                             }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                                     <span style={{ fontSize: '11px', fontWeight: 'bold' }}>#{t.ticket_id}</span>
                                                     <span style={{ fontSize: '9px', backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '2px 6px', borderRadius: '8px' }}>{t.closure_type === 'Declined' ? 'Declined' : t.status}</span>
                                                 </div>
-                                                <div style={{ fontSize: '10px', color: isDarkMode ? '#d4d4d4' : '#0f172a', marginBottom: '4px' }}>{t.issue_category}</div>
-                                                <div style={{ fontSize: '10px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Raiser: {t.raiser_name || t.raised_by}</div>
+                                                <div style={{ fontSize: '10px', color: isDarkMode ? '#d4d4d4' : '#0f172a', marginBottom: '4px' }}>{t.issue_type}</div>
+                                                {showRaiser && <div style={{ fontSize: '10px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Raiser: {t.raiser_display || t.raiser_email || 'Unknown'}</div>}
+                                                {showSolver && <div style={{ fontSize: '10px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Assigned to: {t.assigned_to || 'Unassigned'}</div>}
                                             </div>
                                         )})}
                                     </div>

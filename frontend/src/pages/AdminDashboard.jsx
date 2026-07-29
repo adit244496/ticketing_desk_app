@@ -8,12 +8,12 @@ import api, {
     fetchMasterRules, updateMasterRule,
     fetchTickets, fetchTicketLogs,
     deleteUser, adminResetPassword, deleteLocation, deleteDepartment, deleteMasterRule,
-    uploadImportFile, getImportTemplateUrl, updateDepartment
+    uploadImportFile, getImportTemplateUrl, updateDepartment, toggleUserStatus
 } from '../api';
 import Layout from '../components/Layout';
 import AdminAnalytics from '../components/AdminAnalytics';
 import TicketTimeline from '../components/TicketTimeline';
-import { Download, AlertTriangle, Settings, TrendingUp, Clock, Users, MapPin, Cog, CheckCircle2, FileText, MessageSquare, Paperclip, X, Maximize2, Minimize2, Filter, Upload, FileUp, Key, Trash2, Search, Star, User, ShieldCheck, Pen } from 'lucide-react';
+import { Download, AlertTriangle, Settings, TrendingUp, Clock, Users, MapPin, Cog, CheckCircle2, FileText, MessageSquare, Paperclip, X, Maximize2, Minimize2, Filter, Upload, FileUp, Key, Trash2, Search, Star, User, ShieldCheck, Pen, Power } from 'lucide-react';
 import TicketFilterBar from '../components/TicketFilterBar';
 
 const AdminDashboard = ({ user, setUser }) => {
@@ -355,6 +355,17 @@ const AdminDashboard = ({ user, setUser }) => {
         setUserModalMode(mode); 
         setUserFormData({ ...userData, original_employee_id: userData.employee_id }); 
         setIsUserModalOpen(true); 
+    };
+
+    const handleToggleUserStatus = async (userObj) => {
+        const newStatus = userObj.is_active === false ? true : false;
+        try {
+            await toggleUserStatus({ employee_id: userObj.employee_id, is_active: newStatus });
+            alert(`User ${newStatus ? 'activated' : 'deactivated'} successfully.`);
+            loadSystemData();
+        } catch (err) {
+            alert(err.response?.data?.error || "Failed to toggle user status.");
+        }
     };
 
     // --- LOCATION HANDLERS ---
@@ -1028,6 +1039,27 @@ const AdminDashboard = ({ user, setUser }) => {
                                                                 <Trash2 size={14} />
                                                             </button>
                                                         )}
+                                                        {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
+                                                            <button 
+                                                                title={u.is_active !== false ? "Click to Deactivate" : "Click to Activate"} 
+                                                                style={{ 
+                                                                    backgroundColor: u.is_active !== false ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
+                                                                    color: u.is_active !== false ? '#10b981' : '#ef4444', 
+                                                                    border: `1px solid ${u.is_active !== false ? '#10b981' : '#ef4444'}`,
+                                                                    borderRadius: '12px',
+                                                                    padding: '2px 8px',
+                                                                    fontSize: '10px',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px'
+                                                                }} 
+                                                                onClick={(e) => { e.stopPropagation(); handleToggleUserStatus(u); }}
+                                                            >
+                                                                <Power size={10} />
+                                                                {u.is_active !== false ? 'Active' : 'Inactive'}
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             )}
@@ -1264,7 +1296,7 @@ const AdminDashboard = ({ user, setUser }) => {
                                         <tr key={idx} style={{ borderBottom: '1px solid #27272a', cursor: 'pointer', backgroundColor: (selectedRuleRow?.department === r.department && selectedRuleRow?.issue_type === r.issue_type) ? 'rgba(59, 130, 246, 0.15)' : 'transparent' }} onMouseOver={(e) => { if (!(selectedRuleRow?.department === r.department && selectedRuleRow?.issue_type === r.issue_type)) e.currentTarget.style.backgroundColor = '#18181b'; }} onMouseOut={(e) => { if (!(selectedRuleRow?.department === r.department && selectedRuleRow?.issue_type === r.issue_type)) e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => setSelectedRuleRow(prev => (prev?.department === r.department && prev?.issue_type === r.issue_type) ? null : r)}>
                                             <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.department}</td>
                                             <td style={{ padding: '10px', border: '1px solid #27272a' }}>{r.issue_type}</td>
-                                            <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{r.outlet && String(r.outlet).toLowerCase() !== 'nan' ? r.outlet : 'Global (All)'}</td>
+                                            <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{r.outlet && String(r.outlet).toLowerCase() !== 'nan' && !String(r.outlet).toLowerCase().includes('global') ? r.outlet : 'Unassigned'}</td>
                                             <td style={{ padding: '10px', border: '1px solid #27272a' }}>{r.base_priority}</td>
                                             <td style={{ padding: '10px', color: '#10b981', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.deadline_hours || 24} Hrs</td>
                                             <td style={{ padding: '10px', color: '#60a5fa', border: '1px solid #27272a' }}>{formatSolverDetails(r.assigned_solver)}</td>
@@ -1313,8 +1345,8 @@ const AdminDashboard = ({ user, setUser }) => {
                                 <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>{userModalMode === 'add' ? 'Register New Employee' : 'Edit Employee Details'}</h3>
                                 <form onSubmit={handleUserSubmit}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                                        <input type="text" className="form-control" required placeholder="Employee ID" value={userFormData.employee_id} onChange={e => setUserFormData({ ...userFormData, employee_id: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
-                                        <input type="email" className="form-control" required placeholder="Email Address" value={userFormData.email} onChange={e => setUserFormData({ ...userFormData, email: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
+                                        <input type="text" className="form-control" required placeholder="Employee ID" value={userFormData.employee_id} disabled={userModalMode === 'edit' && user?.role !== 'Super Admin'} onChange={e => setUserFormData({ ...userFormData, employee_id: e.target.value })} style={{ fontSize: '10px', padding: '8px', opacity: (userModalMode === 'edit' && user?.role !== 'Super Admin') ? 0.5 : 1, cursor: (userModalMode === 'edit' && user?.role !== 'Super Admin') ? 'not-allowed' : 'text' }} />
+                                        <input type="email" className="form-control" required placeholder="Email Address" value={userFormData.email} disabled={userModalMode === 'edit' && user?.role !== 'Super Admin'} onChange={e => setUserFormData({ ...userFormData, email: e.target.value })} style={{ fontSize: '10px', padding: '8px', opacity: (userModalMode === 'edit' && user?.role !== 'Super Admin') ? 0.5 : 1, cursor: (userModalMode === 'edit' && user?.role !== 'Super Admin') ? 'not-allowed' : 'text' }} />
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px', marginBottom: '12px' }}>
                                         <input type="text" className="form-control" required placeholder="Full Name" value={userFormData.name} onChange={e => setUserFormData({ ...userFormData, name: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
@@ -1445,16 +1477,28 @@ const AdminDashboard = ({ user, setUser }) => {
                                             </select>
                                         </div>
                                         <div>
-                                            <label style={{ fontSize: '10px' }}>Location / Outlet</label>
-                                            <select className="form-control" value={editRule.outlet && String(editRule.outlet).toLowerCase() !== 'nan' ? editRule.outlet : ''} onChange={e => setEditRule({ ...editRule, outlet: e.target.value })} style={{ fontSize: '10px', padding: '8px' }}>
-                                                <option value="">Global (All Locations)</option>
-                                                {locationsList.map(l => <option key={l.outlet} value={l.outlet}>{l.outlet}</option>)}
-                                            </select>
+                                            <label style={{ fontSize: '10px' }}>Issue Type</label>
+                                            <input type="text" className="form-control" required value={editRule.issue_type} onChange={e => setEditRule({ ...editRule, issue_type: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
                                         </div>
                                     </div>
-                                    <div style={{ marginBottom: '12px' }}>
-                                        <label style={{ fontSize: '10px' }}>Issue Type</label>
-                                        <input type="text" className="form-control" required value={editRule.issue_type} onChange={e => setEditRule({ ...editRule, issue_type: e.target.value })} style={{ fontSize: '10px', padding: '8px' }} />
+                                    <div className="form-group" style={{ marginBottom: '12px' }}>
+                                        <label style={{ color: '#60a5fa', marginBottom: '6px', display: 'block', fontSize: '10px' }}>Location / Outlet (Select Multiple)</label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '128px', overflowY: 'auto', backgroundColor: '#09090b', padding: '10px', borderRadius: '5px', border: '1px solid #27272a' }}>
+                                            {locationsList.map(l => {
+                                                const isSelected = editRule.outlet && String(editRule.outlet).split(',').map(s => s.trim()).includes(String(l.outlet));
+                                                return (
+                                                    <label key={l.outlet} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', cursor: 'pointer', color: isSelected ? '#fff' : '#a1a1aa' }}>
+                                                        <input type="checkbox" checked={isSelected} onChange={() => {
+                                                            let currentOutlets = editRule.outlet ? String(editRule.outlet).split(',').map(s => s.trim()).filter(s => s && s.toLowerCase() !== 'nan' && !s.toLowerCase().includes('global')) : [];
+                                                            if (currentOutlets.includes(String(l.outlet))) currentOutlets = currentOutlets.filter(id => id !== String(l.outlet));
+                                                            else currentOutlets.push(String(l.outlet));
+                                                            setEditRule({ ...editRule, outlet: currentOutlets.join(',') });
+                                                        }} style={{ cursor: 'pointer', width: '13px', height: '13px', accentColor: '#3b82f6' }} />
+                                                        {l.outlet}
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                                         <div>
@@ -1469,7 +1513,7 @@ const AdminDashboard = ({ user, setUser }) => {
                                     <div className="form-group">
                                         <label style={{ color: '#60a5fa', marginBottom: '6px', display: 'block', fontSize: '10px' }}>Assign Solvers (Select Multiple for Round Robin)</label>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '128px', overflowY: 'auto', backgroundColor: '#09090b', padding: '10px', borderRadius: '5px', border: '1px solid #27272a' }}>
-                                            {usersList.filter(u => editRule.department && u.department === editRule.department && u.role === 'Solver').map(u => {
+                                            {usersList.filter(u => editRule.department && u.department === editRule.department && u.role && (String(u.role).toLowerCase() === 'solver' || String(u.role).toLowerCase().includes('head')) && u.is_active !== false).map(u => {
                                                 const isSelected = editRule.assigned_solver && String(editRule.assigned_solver).includes(String(u.employee_id));
                                                 return (
                                                     <label key={u.employee_id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', cursor: 'pointer', color: isSelected ? '#fff' : '#a1a1aa' }}>

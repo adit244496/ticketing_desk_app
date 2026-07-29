@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, X, RefreshCw } from 'lucide-react';
+import { Search, Filter, X, RefreshCw, SortDesc } from 'lucide-react';
 
 // --- CUSTOM ENTERPRISE SEARCH DROPDOWN ---
 export const SearchSelect = ({ options, value, onChange, placeholder }) => {
@@ -72,8 +72,13 @@ export const SearchSelect = ({ options, value, onChange, placeholder }) => {
 
 const TicketFilterBar = ({ tickets, onFilter, usersList = [], rightActions }) => {
     const [showFilters, setShowFilters] = useState(false);
+    const [showSort, setShowSort] = useState(false);
     const [activeFilterKeys, setActiveFilterKeys] = useState([]);
     const [globalSearch, setGlobalSearch] = useState('');
+
+    // Sort specific state
+    const [sortField, setSortField] = useState('ticket_id');
+    const [sortOrder, setSortOrder] = useState('desc');
 
     // Specific Filters
     const [fTicketId, setFTicketId] = useState('');
@@ -114,7 +119,7 @@ const TicketFilterBar = ({ tickets, onFilter, usersList = [], rightActions }) =>
     useEffect(() => {
         if (!tickets) return;
 
-        const filtered = tickets.filter(t => {
+        let result = tickets.filter(t => {
             // Global Search
             const searchStr = globalSearch.toLowerCase();
             const matchesGlobal = !searchStr || (
@@ -141,8 +146,38 @@ const TicketFilterBar = ({ tickets, onFilter, usersList = [], rightActions }) =>
             return matchesGlobal && matchesId && matchesDept && matchesIssue && matchesStatus && matchesSolver && matchesRaiser;
         });
 
-        onFilter(filtered);
-    }, [tickets, globalSearch, fTicketId, fDept, fIssue, fStatus, fSolver, fRaiser, usersList]);
+        // Apply Sorting
+        result.sort((a, b) => {
+            let valA = a[sortField];
+            let valB = b[sortField];
+
+            if (sortField === 'ticket_id') {
+                valA = Number(valA);
+                valB = Number(valB);
+            } else if (sortField === 'timestamp' || sortField === 'deadline') {
+                const parseDate = (dStr) => {
+                    if (!dStr) return 0;
+                    const parts = String(dStr).split(' ');
+                    if (!parts[0]) return 0;
+                    const dParts = parts[0].split('-');
+                    const tParts = parts[1] ? parts[1].split(':') : ['0', '0'];
+                    if (dParts.length < 3) return 0;
+                    return new Date(dParts[2], dParts[1] - 1, dParts[0], tParts[0], tParts[1]).getTime();
+                };
+                valA = parseDate(valA);
+                valB = parseDate(valB);
+            } else {
+                valA = String(valA || '').toLowerCase();
+                valB = String(valB || '').toLowerCase();
+            }
+
+            if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        onFilter(result);
+    }, [tickets, globalSearch, fTicketId, fDept, fIssue, fStatus, fSolver, fRaiser, usersList, sortField, sortOrder]);
 
     const handleClear = () => {
         setGlobalSearch('');
@@ -171,8 +206,47 @@ const TicketFilterBar = ({ tickets, onFilter, usersList = [], rightActions }) =>
                     />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+                    {/* Sort Button and Modal */}
                     <div style={{ position: 'relative' }}>
-                        <button className="btn" onClick={() => setShowFilters(!showFilters)} style={{ padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: showFilters || activeFilterKeys.length > 0 ? '#3b82f6' : '#27272a', border: 'none' }}>
+                        <button className="btn" onClick={() => { setShowSort(!showSort); setShowFilters(false); }} style={{ padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: showSort ? '#3b82f6' : '#27272a', border: 'none' }}>
+                            <SortDesc size={12} /> Sort
+                        </button>
+                        {showSort && (
+                            <div style={{
+                                position: 'absolute', top: '100%', right: 0, marginTop: '8px',
+                                backgroundColor: 'var(--bg-solid)', border: '1px solid var(--border)',
+                                borderRadius: '8px', padding: '12px', zIndex: 9999,
+                                boxShadow: '0 10px 25px rgba(0,0,0,0.2)', minWidth: '220px',
+                                display: 'flex', flexDirection: 'column', gap: '12px'
+                            }}>
+                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 'bold', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>SORT TICKETS BY</div>
+
+                                <div>
+                                    <label style={{ fontSize: '10px', color: '#a1a1aa', marginBottom: '4px', display: 'block' }}>Field</label>
+                                    <select className="form-control" value={sortField} onChange={e => setSortField(e.target.value)} style={{ fontSize: '11px', padding: '6px', width: '100%' }}>
+                                        <option value="ticket_id">Ticket ID</option>
+                                        <option value="status">Status</option>
+                                        <option value="assigned_to">Assigned To</option>
+                                        <option value="timestamp">Date Raised</option>
+                                        <option value="deadline">Deadline</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label style={{ fontSize: '10px', color: '#a1a1aa', marginBottom: '4px', display: 'block' }}>Order</label>
+                                    <select className="form-control" value={sortOrder} onChange={e => setSortOrder(e.target.value)} style={{ fontSize: '11px', padding: '6px', width: '100%' }}>
+                                        <option value="desc">Ascending (Oldest/Lowest First)</option>
+                                        <option value="asc">Descending (Newest/Highest First)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Filter Button and Modal */}
+                    <div style={{ position: 'relative' }}>
+                        <button className="btn" onClick={() => { setShowFilters(!showFilters); setShowSort(false); }} style={{ padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: showFilters || activeFilterKeys.length > 0 ? '#3b82f6' : '#27272a', border: 'none' }}>
                             <Filter size={12} /> Filters {activeFilterKeys.length > 0 ? `(${activeFilterKeys.length})` : ''}
                         </button>
                         {showFilters && (

@@ -1,7 +1,10 @@
 import pandas as pd
 import os
 import threading
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+def get_ist_now():
+    return datetime.now(timezone(timedelta(hours=5, minutes=30)))
 import numpy as np
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
@@ -179,7 +182,7 @@ def log_ticket_action(ticket_id, user_email, action, details="", remarks="", att
                 pass
 
     new_log = {
-        'timestamp': datetime.now().strftime("%d-%m-%Y %H:%M"),
+        'timestamp': get_ist_now().strftime("%d-%m-%Y %H:%M"),
         'ticket_id': ticket_id,
         'user': emp_id,
         'action': action,
@@ -196,6 +199,23 @@ def log_ticket_action(ticket_id, user_email, action, details="", remarks="", att
 def create_notification(user_email, message, role_context='System', ticket_id=None):
     if not user_email or str(user_email).lower() in ['nan', 'none', 'unassigned', '']:
         return
+
+    try:
+        users = load_data('users')
+        if not users.empty:
+            user_row = users[users['email'] == user_email]
+            if not user_row.empty:
+                role = str(user_row.iloc[0].get('role', '')).lower()
+                if role == 'audit':
+                    return
+            else:
+                user_row = users[users['employee_id'].astype(str) == str(user_email)]
+                if not user_row.empty:
+                    role = str(user_row.iloc[0].get('role', '')).lower()
+                    if role == 'audit':
+                        return
+    except Exception as e:
+        pass
 
     notifs = load_data('notifications')
     if not notifs.empty and 'notif_id' in notifs.columns:
@@ -216,7 +236,7 @@ def create_notification(user_email, message, role_context='System', ticket_id=No
         'user_email': user_email,
         'message': message,
         'is_read': False,
-        'timestamp': datetime.now().strftime("%d-%m-%Y %H:%M"),
+        'timestamp': get_ist_now().strftime("%d-%m-%Y %H:%M"),
         'role_context': role_context,
         'ticket_id': ticket_id
     }
@@ -302,7 +322,7 @@ def auto_close_resolved_tickets():
     if tickets.empty: return
     
     users = load_data('users')
-    now = datetime.now()
+    now = get_ist_now()
     updated = False
     
     for idx, row in tickets.iterrows():
@@ -339,7 +359,7 @@ def auto_check_sla_breaches():
     if tickets.empty: return
     
     users = load_data('users')
-    now = datetime.now()
+    now = get_ist_now()
     updated = False
 
     if 'sla_notified' not in tickets.columns:
@@ -399,7 +419,7 @@ def escalate_open_tickets():
     if tickets.empty: return
 
     users = load_data('users')
-    now = datetime.now()
+    now = get_ist_now()
     updated = False
 
     if 'last_open_escalation_time' not in tickets.columns:
@@ -449,7 +469,7 @@ def escalate_overdue_tickets():
     if tickets.empty: return
 
     users = load_data('users')
-    now = datetime.now()
+    now = get_ist_now()
     updated = False
 
     if 'last_escalation_time' not in tickets.columns:

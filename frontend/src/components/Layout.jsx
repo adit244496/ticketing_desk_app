@@ -593,6 +593,7 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                             <Calendar size={16} />
                         </button>
 
+                        {user?.role !== 'Audit' && (
                         <div ref={notifRef} style={{ position: 'relative', marginRight: '16px' }}>
                             <button
                                 onClick={() => setShowNotifs(!showNotifs)}
@@ -698,6 +699,7 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                                 </div>
                             )}
                         </div>
+                        )}
 
                         {/* VERTICAL DIVIDER */}
                         <div style={{ width: '1px', height: '24px', backgroundColor: t.border, margin: '0 16px' }}></div>

@@ -2,9 +2,13 @@ import os
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import database
 from PIL import Image
+
+def get_ist_now():
+    return datetime.now(timezone(timedelta(hours=5, minutes=30)))
+
 
 ticket_bp = Blueprint('ticket', __name__)
 
@@ -128,6 +132,7 @@ def get_tickets():
     records = tickets.to_dict(orient='records')
     for r in records:
         r['assigned_to'] = get_user_display(r.get('assigned_to'), users)
+        r['raiser_display'] = get_user_display(r.get('raiser_email'), users)
         
         # Calculate SLA Breach dynamically
         SLA_Breach = False
@@ -142,7 +147,7 @@ def get_tickets():
                         if solved_dt > deadline_dt:
                             SLA_Breach = True
                 else:
-                    if datetime.now() > deadline_dt:
+                    if get_ist_now() > deadline_dt:
                         SLA_Breach = True
             except:
                 pass
@@ -185,9 +190,18 @@ def create_ticket():
     location = data.get('location') 
     raiser_email = data.get('raiser_email')
     
-    rule_match = rules[(rules['department'] == dept) & (rules['issue_type'] == issue) & (rules['outlet'] == location)]
-    if rule_match.empty:
-        rule_match = rules[(rules['department'] == dept) & (rules['issue_type'] == issue)]
+    rule_match_base = rules[(rules['department'] == dept) & (rules['issue_type'] == issue)]
+    
+    def is_location_in_outlet(outlet_val, loc):
+        if pd.isna(outlet_val) or str(outlet_val).strip() == '': return False
+        outlets = [o.strip() for o in str(outlet_val).split(',')]
+        return loc in outlets
+
+    rule_match = pd.DataFrame()
+    if not rule_match_base.empty:
+        exact_match = rule_match_base[rule_match_base['outlet'].apply(lambda x: is_location_in_outlet(x, location))]
+        if not exact_match.empty:
+            rule_match = exact_match
     
     base_priority = 3
     deadline_hours = int(data.get('deadline_hours', 24))
@@ -277,7 +291,7 @@ def create_ticket():
             except:
                 pass
     new_tid += 1
-    deadline = (datetime.now() + pd.Timedelta(hours=deadline_hours)).strftime("%d-%m-%Y %H:%M")
+    deadline = (get_ist_now() + pd.Timedelta(hours=deadline_hours)).strftime("%d-%m-%Y %H:%M")
     
     filename = ""
     if file and file.filename != '':
@@ -300,7 +314,7 @@ def create_ticket():
         'status': 'Open',
         'assigned_to': assigned_solver_emp_id, # STORE AS ID
         'location': location,
-        'timestamp': datetime.now().strftime("%d-%m-%Y %H:%M"),
+        'timestamp': get_ist_now().strftime("%d-%m-%Y %H:%M"),
         'deadline': deadline,
         'attachment': filename,
         'solver_notified': False, 'depthead_notified': False, 
@@ -375,7 +389,7 @@ def update_ticket_status():
     if new_status == 'Decline':
         actual_status = 'Closed'
         tickets.loc[tickets['ticket_id'] == ticket_id, 'closure_type'] = 'Declined'
-        tickets.loc[tickets['ticket_id'] == ticket_id, 'closed_timestamp'] = datetime.now().strftime("%d-%m-%Y %H:%M")
+        tickets.loc[tickets['ticket_id'] == ticket_id, 'closed_timestamp'] = get_ist_now().strftime("%d-%m-%Y %H:%M")
         tickets.loc[tickets['ticket_id'] == ticket_id, 'solver_comments'] = remarks
         
     elif new_status == 'Reopened':
@@ -389,16 +403,21 @@ def update_ticket_status():
         location = tickets.loc[tickets['ticket_id'] == ticket_id, 'location'].values[0]
         
         rules = database.load_data('master')
-        rule_match = rules[
+        rule_match_base = rules[
             (rules['department'].astype(str).str.strip().str.lower() == str(dept).strip().lower()) & 
-            (rules['issue_type'].astype(str).str.strip().str.lower() == str(issue).strip().lower()) & 
-            (rules['outlet'].astype(str).str.strip().str.lower() == str(location).strip().lower())
+            (rules['issue_type'].astype(str).str.strip().str.lower() == str(issue).strip().lower())
         ]
-        if rule_match.empty:
-            rule_match = rules[
-                (rules['department'].astype(str).str.strip().str.lower() == str(dept).strip().lower()) & 
-                (rules['issue_type'].astype(str).str.strip().str.lower() == str(issue).strip().lower())
-            ]
+        
+        def is_loc_in_outlet_reopen(outlet_val, loc):
+            if pd.isna(outlet_val) or str(outlet_val).strip() == '': return False
+            outlets = [o.strip().lower() for o in str(outlet_val).split(',')]
+            return str(loc).strip().lower() in outlets
+
+        rule_match = pd.DataFrame()
+        if not rule_match_base.empty:
+            exact_match = rule_match_base[rule_match_base['outlet'].apply(lambda x: is_loc_in_outlet_reopen(x, location))]
+            if not exact_match.empty:
+                rule_match = exact_match
             
         deadline_hours = 24
         if not rule_match.empty:
@@ -409,16 +428,16 @@ def update_ticket_status():
             except:
                 pass
                 
-        new_deadline = (datetime.now() + pd.Timedelta(hours=deadline_hours)).strftime("%d-%m-%Y %H:%M")
+        new_deadline = (get_ist_now() + pd.Timedelta(hours=deadline_hours)).strftime("%d-%m-%Y %H:%M")
         tickets.loc[tickets['ticket_id'] == ticket_id, 'deadline'] = new_deadline
         tickets.loc[tickets['ticket_id'] == ticket_id, 'last_escalation_time'] = new_deadline
         
     elif new_status == 'Resolved':
-        tickets.loc[tickets['ticket_id'] == ticket_id, 'solved_timestamp'] = datetime.now().strftime("%d-%m-%Y %H:%M")
+        tickets.loc[tickets['ticket_id'] == ticket_id, 'solved_timestamp'] = get_ist_now().strftime("%d-%m-%Y %H:%M")
         tickets.loc[tickets['ticket_id'] == ticket_id, 'solver_comments'] = remarks
         
     elif new_status == 'Closed':
-        tickets.loc[tickets['ticket_id'] == ticket_id, 'closed_timestamp'] = datetime.now().strftime("%d-%m-%Y %H:%M")
+        tickets.loc[tickets['ticket_id'] == ticket_id, 'closed_timestamp'] = get_ist_now().strftime("%d-%m-%Y %H:%M")
         tickets.loc[tickets['ticket_id'] == ticket_id, 'closure_type'] = 'Accepted'
         if rating:
             tickets.loc[tickets['ticket_id'] == ticket_id, 'solver_rating'] = float(rating)
@@ -434,7 +453,7 @@ def update_ticket_status():
     filename = None
     if file and file.filename != '':
         safe_name = secure_filename(file.filename)
-        filename = f"log_{ticket_id}_{datetime.now().strftime('%H%M%S')}_{safe_name}"
+        filename = f"log_{ticket_id}_{get_ist_now().strftime('%H%M%S')}_{safe_name}"
         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         compress_image(filepath)
@@ -676,7 +695,7 @@ def add_ticket_chat():
     filename = None
     if file and file.filename != '':
         safe_name = secure_filename(file.filename)
-        filename = f"chat_{ticket_id}_{datetime.now().strftime('%H%M%S')}_{safe_name}"
+        filename = f"chat_{ticket_id}_{get_ist_now().strftime('%H%M%S')}_{safe_name}"
         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         compress_image(filepath)

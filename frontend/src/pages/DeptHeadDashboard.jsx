@@ -68,7 +68,7 @@ const DeptHeadDashboard = ({ user, setUser }) => {
             
             setDeptTickets(Array.isArray(safeTickets) ? safeTickets : []);
             setPendingApprovals(approvalsData);
-            setDeptSolvers(usersData.filter(u => u.department === user.department && u.role === 'Solver'));
+            setDeptSolvers(usersData.filter(u => u.department === user.department && u.role && (String(u.role).toLowerCase() === 'solver' || String(u.role).toLowerCase().includes('head'))));
             setAllUsers(usersData);
             
             // Strictly filter rules to ONLY show this Dept Head's rules
@@ -512,7 +512,7 @@ const DeptHeadDashboard = ({ user, setUser }) => {
                                             onClick={() => openRuleModal(r)}
                                         >
                                             <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.issue_type}</td>
-                                            <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{r.outlet && String(r.outlet).toLowerCase() !== 'nan' ? r.outlet : 'Global (All)'}</td>
+                                            <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{r.outlet && String(r.outlet).toLowerCase() !== 'nan' && !String(r.outlet).toLowerCase().includes('global') ? r.outlet : 'Unassigned'}</td>
                                             <td style={{ padding: '10px', border: '1px solid #27272a' }}>{r.base_priority}</td>
                                             <td style={{ padding: '10px', color: '#10b981', fontWeight: 'bold', border: '1px solid #27272a' }}>{r.deadline_hours || 24} Hrs</td>
                                             <td style={{ padding: '10px', color: '#60a5fa', border: '1px solid #27272a' }}>
@@ -673,7 +673,7 @@ const DeptHeadDashboard = ({ user, setUser }) => {
                                 </div>
                                 <div className="form-group" style={{ margin: 0 }}>
                                     <label style={{ fontSize: '10px' }}>Location / Outlet</label>
-                                    <input type="text" className="form-control" disabled value={editRule.outlet && String(editRule.outlet).toLowerCase() !== 'nan' ? editRule.outlet : 'Global (All Locations)'} style={{ backgroundColor: '#09090b', color: '#71717a', fontSize: '10px', padding: '6px 10px' }} />
+                                    <input type="text" className="form-control" disabled value={editRule.outlet && String(editRule.outlet).toLowerCase() !== 'nan' && !String(editRule.outlet).toLowerCase().includes('global') ? editRule.outlet : 'Unassigned'} style={{ backgroundColor: '#09090b', color: '#71717a', fontSize: '10px', padding: '6px 10px' }} />
                                 </div>
                             </div>
 
@@ -696,7 +696,7 @@ const DeptHeadDashboard = ({ user, setUser }) => {
                                     maxHeight: '128px', overflowY: 'auto', backgroundColor: '#09090b', 
                                     padding: '10px', borderRadius: '5px', border: '1px solid #27272a' 
                                 }}>
-                                    {deptSolvers.map(u => {
+                                    {deptSolvers.filter(u => u.is_active !== false).map(u => {
                                         const isSelected = editRule.assigned_solver && String(editRule.assigned_solver).includes(String(u.employee_id));
                                         return (
                                             <label key={u.employee_id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', cursor: 'pointer', color: isSelected ? '#fff' : '#a1a1aa' }}>
