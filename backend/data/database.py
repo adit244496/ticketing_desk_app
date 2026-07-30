@@ -4,7 +4,10 @@ import threading
 from datetime import datetime, timezone, timedelta
 
 def get_ist_now():
-    return datetime.now(timezone(timedelta(hours=5, minutes=30)))
+    # Naive IST wall-clock time. Stored timestamps are naive "%d-%m-%Y %H:%M"
+    # strings, so this must be tz-naive too or datetime subtraction raises
+    # "Cannot subtract tz-naive and tz-aware datetime-like objects".
+    return datetime.now(timezone(timedelta(hours=5, minutes=30))).replace(tzinfo=None)
 import numpy as np
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
