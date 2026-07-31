@@ -536,7 +536,7 @@ def generate_full_ageing_report():
         if col in tickets.columns:
             tickets[col] = pd.to_datetime(tickets[col], format='mixed', dayfirst=True, errors='coerce')
 
-    now = pd.Timestamp.now()
+    now = get_ist_now()
 
     tickets['solver_resolution_hours'] = tickets.apply(
         lambda row: round((row['solved_timestamp'] - row['timestamp']).total_seconds()/3600, 2)
