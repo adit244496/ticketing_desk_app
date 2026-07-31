@@ -147,7 +147,7 @@ def get_tickets():
                         if solved_dt > deadline_dt:
                             SLA_Breach = True
                 else:
-                    if get_ist_now() > deadline_dt:
+                    if get_ist_now().replace(tzinfo=None) > deadline_dt:
                         SLA_Breach = True
             except:
                 pass
@@ -224,9 +224,20 @@ def create_ticket():
             
         assigned_solvers_raw = str(rule_match.iloc[0]['assigned_solver'])
         if assigned_solvers_raw.lower() != 'nan' and assigned_solvers_raw.strip():
-            solvers = [s.strip() for s in assigned_solvers_raw.split(',') if s.strip()]
+            raw_solvers = [s.strip() for s in assigned_solvers_raw.split(',') if s.strip()]
             
-            if len(solvers) == 1:
+            # Ensure we only auto-assign to ACTIVE solvers
+            active_solvers = []
+            for s_id in raw_solvers:
+                u_row = users[users['employee_id'].astype(str) == str(s_id)]
+                if not u_row.empty and str(u_row.iloc[0].get('is_active', 'True')).lower() not in ['false', '0']:
+                    active_solvers.append(s_id)
+            
+            solvers = active_solvers
+            
+            if len(solvers) == 0:
+                assigned_solver = 'Unassigned'
+            elif len(solvers) == 1:
                 assigned_solver = solvers[0] 
             elif len(solvers) > 1:
                 issue_key = f"{dept}_{issue}_{location}"
@@ -250,6 +261,9 @@ def create_ticket():
                 else:
                     new_row = pd.DataFrame([{'issue_key': issue_key, 'index': idx + 1}])
                     rr_pointer = pd.concat([rr_pointer, new_row], ignore_index=True)
+                
+                if 'id' in rr_pointer.columns:
+                    rr_pointer = rr_pointer.drop(columns=['id'])
                 database.save_data(rr_pointer, 'rr_pointer')
     
     # --- STORAGE FIX: FORCE EMPLOYEE ID FOR DATABASE ---
@@ -520,6 +534,11 @@ def request_handover():
 
     # STORE AS EMP ID
     target_emp_id = get_user_emp_id(target_id, users)
+    
+    # Check if target is deactivated
+    target_user_row = users[users['employee_id'].astype(str) == str(target_emp_id)]
+    if not target_user_row.empty and str(target_user_row.iloc[0].get('is_active', 'True')).lower() in ['false', '0']:
+        return jsonify({"error": "Cannot assign ticket to a deactivated user."}), 400
     
     dept = str(tickets.loc[tickets['ticket_id'] == ticket_id, 'dept_assigned'].values[0]).strip()
     

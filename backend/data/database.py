@@ -4,9 +4,6 @@ import threading
 from datetime import datetime, timezone, timedelta
 
 def get_ist_now():
-    # Naive IST wall-clock time. Stored timestamps are naive "%d-%m-%Y %H:%M"
-    # strings, so this must be tz-naive too or datetime subtraction raises
-    # "Cannot subtract tz-naive and tz-aware datetime-like objects".
     return datetime.now(timezone(timedelta(hours=5, minutes=30))).replace(tzinfo=None)
 import numpy as np
 from sqlalchemy import create_engine
@@ -203,20 +200,47 @@ def create_notification(user_email, message, role_context='System', ticket_id=No
     if not user_email or str(user_email).lower() in ['nan', 'none', 'unassigned', '']:
         return
 
+    role = 'user'
     try:
         users = load_data('users')
         if not users.empty:
             user_row = users[users['email'] == user_email]
-            if not user_row.empty:
-                role = str(user_row.iloc[0].get('role', '')).lower()
-                if role == 'audit':
-                    return
-            else:
+            if user_row.empty:
                 user_row = users[users['employee_id'].astype(str) == str(user_email)]
-                if not user_row.empty:
-                    role = str(user_row.iloc[0].get('role', '')).lower()
-                    if role == 'audit':
+                
+            if not user_row.empty:
+                # Stop if user is deactivated
+                if str(user_row.iloc[0].get('is_active', 'True')).lower() in ['false', '0']:
+                    return
+                    
+                role = str(user_row.iloc[0].get('role', '')).lower().replace(' ', '')
+                
+                if role in ['audit', 'admin', 'superadmin', 'systemadmin']:
+                    return
+                
+                if role == 'dept.head':
+                    if 'SLA' not in message and 'SLA Breach' not in role_context:
                         return
+                        
+                    if ticket_id:
+                        tickets_df = load_data('tickets')
+                        if not tickets_df.empty:
+                            match = tickets_df[tickets_df['ticket_id'].astype(str) == str(ticket_id)]
+                            if not match.empty:
+                                t = match.iloc[0]
+                                ticket_dept = str(t.get('dept_assigned', '')).strip().lower()
+                                ticket_loc = str(t.get('location', '')).strip().lower()
+                                
+                                user_dept = str(user_row.iloc[0].get('department', '')).strip().lower()
+                                user_outlet = str(user_row.iloc[0].get('outlet', '')).strip().lower()
+                                
+                                if ticket_dept != user_dept:
+                                    return
+                                    
+                                if 'all' not in user_outlet:
+                                    assigned_locs = [s.strip() for s in user_outlet.split(',')]
+                                    if ticket_loc not in assigned_locs:
+                                        return
     except Exception as e:
         pass
 
@@ -234,11 +258,14 @@ def create_notification(user_email, message, role_context='System', ticket_id=No
     else:
         new_id = 10000
 
+    is_emailed_flag = True if role != 'dept.head' else False
+    
     new_notif = {
         'notif_id': new_id,
         'user_email': user_email,
         'message': message,
         'is_read': False,
+        'is_emailed': is_emailed_flag,
         'timestamp': get_ist_now().strftime("%d-%m-%Y %H:%M"),
         'role_context': role_context,
         'ticket_id': ticket_id
@@ -247,8 +274,9 @@ def create_notification(user_email, message, role_context='System', ticket_id=No
     new_df = pd.DataFrame([new_notif])
     append_data(new_df, 'notifications')
 
-    # Queue Email instead of spawning new thread immediately
-    email_queue.put((user_email, message, role_context, ticket_id))
+    # Queue Email immediately for everyone EXCEPT Dept Heads
+    if role != 'dept.head':
+        email_queue.put((user_email, message, role_context, ticket_id))
 
 # --- HELPER: GET OMNI-CHANNEL CONTACTS ---
 def get_omni_contacts(requestor_email, dept_name, users_df, solver_emp_id=None):
@@ -288,10 +316,11 @@ def get_omni_contacts(requestor_email, dept_name, users_df, solver_emp_id=None):
                 pass
                         
         # Lookup Dept Head
+        dept_head_email = []
         if pd.notnull(dept_name):
-            dept_head_row = users_df[(users_df['department'] == dept_name) & (users_df['role'] == 'Dept. Head')]
+            dept_head_row = users_df[(users_df['department'] == dept_name) & (users_df['role'].astype(str).str.lower().str.replace(' ', '') == 'dept.head')]
             if not dept_head_row.empty:
-                dept_head_email = dept_head_row.iloc[0].get('email')
+                dept_head_email = dept_head_row['email'].dropna().tolist()
                 
     return manager_email, dept_head_email, solver_manager_email
 
@@ -351,7 +380,13 @@ def auto_close_resolved_tickets():
                         
                         send_omni_blast([requestor], f"System Auto-Closed: Ticket #{ticket_id} has been automatically closed after 24h of inactivity.", role_context='Requestor')
                         send_omni_blast([solver], f"System Auto-Closed: Ticket #{ticket_id} (Resolved) was automatically closed.", role_context='Solver')
-                        send_omni_blast([manager_email, dept_head_email], f"FYI: Ticket #{ticket_id} was automatically closed by the system.", role_context='System')
+                        
+                        to_notify_sys = []
+                        if manager_email: to_notify_sys.append(manager_email)
+                        if isinstance(dept_head_email, list): to_notify_sys.extend(dept_head_email)
+                        elif dept_head_email: to_notify_sys.append(dept_head_email)
+                        
+                        send_omni_blast(to_notify_sys, f"FYI: Ticket #{ticket_id} was automatically closed by the system.", role_context='System')
                         
     if updated:
         save_data(tickets, 'tickets')
@@ -405,7 +440,8 @@ def auto_check_sla_breaches():
                 to_notify = [requestor]
                 if solver_email: to_notify.append(solver_email)
                 if req_mgr_email: to_notify.append(req_mgr_email)
-                if dept_head_email: to_notify.append(dept_head_email)
+                if isinstance(dept_head_email, list): to_notify.extend(dept_head_email)
+                elif dept_head_email: to_notify.append(dept_head_email)
                 if solver_mgr_email: to_notify.append(solver_mgr_email)
                 to_notify.extend(admin_emails)
                 
@@ -459,6 +495,12 @@ def escalate_open_tickets():
                     
                     if solver_manager_email:
                         send_omni_blast([solver_manager_email], f"Manager Alert: Ticket #{ticket_id} assigned to your team member has been Open for {increments * 2} hours with no action taken.", role_context='System', ticket_id=ticket_id)
+
+                    to_notify_sys = []
+                    if manager_email: to_notify_sys.append(manager_email)
+                    if isinstance(dept_head_email, list): to_notify_sys.extend(dept_head_email)
+                    elif dept_head_email: to_notify_sys.append(dept_head_email)
+                    send_omni_blast(to_notify_sys, f"Manager Alert: Ticket #{ticket_id} assigned to your team member has been Open for {2 * increments} hours with no action taken.", role_context='System', ticket_id=ticket_id)
 
         except Exception:
             pass
@@ -517,7 +559,9 @@ def escalate_overdue_tickets():
                     send_omni_blast([solver], f"URGENT SLA Breach: Ticket #{ticket_id} has missed its deadline. Severity increased!", role_context='Solver')
                     send_omni_blast([requestor], f"Update: Ticket #{ticket_id} is taking longer than expected and has been automatically escalated.", role_context='Requestor')
                     send_omni_blast([req_manager_email], f"FYI: Ticket #{ticket_id} raised by your team member missed its SLA and escalated.", role_context='System')
-                    send_omni_blast([dept_head_email], f"SLA Breach Alert: Ticket #{ticket_id} in your department missed its deadline and escalated.", role_context='System')
+                    
+                    dept_heads = dept_head_email if isinstance(dept_head_email, list) else [dept_head_email]
+                    send_omni_blast(dept_heads, f"SLA Breach Alert: Ticket #{ticket_id} in your department missed its deadline and escalated.", role_context='System')
                     send_omni_blast([solver_manager_email], f"SLA Breach Escalation: Ticket #{ticket_id} assigned to your team member missed its deadline.", role_context='System')
                     
         except Exception:
@@ -585,6 +629,76 @@ def generate_full_ageing_report():
             
     tickets = tickets.replace({np.nan: None})
     return tickets.to_dict(orient='records')
+
+# ==========================================
+# DAILY EXCEL NOTIFICATIONS
+# ==========================================
+def send_daily_excel_notifications():
+    try:
+        notifs = load_data('notifications')
+        if notifs.empty or 'is_emailed' not in notifs.columns:
+            return
+            
+        # Filter notifications that haven't been emailed yet (handling string 'True'/'False')
+        pending = notifs[~notifs['is_emailed'].astype(str).str.lower().isin(['true', '1', 't'])]
+            
+        if pending.empty:
+            return
+            
+        print(f"Sending daily Excel notifications for {len(pending)} pending items...")
+        
+        # Group by user email
+        users_to_notify = pending['user_email'].unique()
+        
+        for user_email in users_to_notify:
+            if not user_email or str(user_email).lower() in ['nan', 'none', '']: continue
+            
+            user_notifs = pending[pending['user_email'] == user_email].copy()
+            if user_notifs.empty: continue
+            
+            # Format dataframe for the Excel sheet
+            report_df = user_notifs[['notif_id', 'message', 'timestamp', 'role_context', 'ticket_id']].copy()
+            report_df.rename(columns={
+                'notif_id': 'Notification ID', 
+                'message': 'Message', 
+                'timestamp': 'Time', 
+                'role_context': 'Role Context',
+                'ticket_id': 'Ticket ID'
+            }, inplace=True)
+            
+            # Generate Excel file
+            excel_filename = f"Daily_Notifications_{user_email.split('@')[0]}.xlsx"
+            excel_path = os.path.join(os.getcwd(), 'uploads', excel_filename)
+            
+            # Ensure uploads directory exists
+            os.makedirs(os.path.join(os.getcwd(), 'uploads'), exist_ok=True)
+            
+            report_df.to_excel(excel_path, index=False)
+            
+            # Send Email
+            subject = "Your Daily Ambuja Desk Notifications"
+            body = f"Hello,\n\nPlease find attached your daily digest of notifications from Ambuja Desk.\nYou have {len(user_notifs)} new notifications."
+            
+            email_utils.send_ticket_email(
+                to_email=user_email,
+                subject=subject,
+                message_body=body,
+                attachment_filepath=excel_path
+            )
+            
+            # Clean up the excel file
+            if os.path.exists(excel_path):
+                os.remove(excel_path)
+                
+        # Mark as emailed in database
+        with engine.begin() as conn:
+            from sqlalchemy import text
+            for idx, row in pending.iterrows():
+                notif_id = row['notif_id']
+                conn.execute(text(f"UPDATE notifications SET is_emailed = 'True' WHERE notif_id = '{notif_id}'"))
+                
+    except Exception as e:
+        print(f"Error sending daily excel notifications: {e}")
 
 # ==========================================
 # DATABASE INITIALIZATION
@@ -680,7 +794,7 @@ def init_db():
     append_data(pd.DataFrame(columns=cols), 'logs')
 
     print("Verifying schema and tables for 'notifications'...")
-    cols = ['notif_id', 'user_email', 'message', 'is_read', 'timestamp', 'role_context', 'ticket_id']
+    cols = ['notif_id', 'user_email', 'message', 'is_read', 'timestamp', 'role_context', 'ticket_id', 'is_emailed']
     append_data(pd.DataFrame(columns=cols), 'notifications')
         
     grade_rules_df = load_data('grade_rules')

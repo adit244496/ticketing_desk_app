@@ -269,8 +269,8 @@ def update_rule():
     
     if not match_idx:
         new_rule = {
-            'department': data.get('department'),
-            'issue_type': data.get('issue_type'),
+            'department': str(data.get('department')).strip() if data.get('department') else None,
+            'issue_type': str(data.get('issue_type')).strip() if data.get('issue_type') else None,
             'outlet': data.get('outlet'),
             'base_priority': data.get('base_priority', 3),
             'assigned_solver': data.get('assigned_solver'),
@@ -281,8 +281,8 @@ def update_rule():
         
     idx = match_idx[0]
     
-    rules.loc[idx, 'department'] = str(data.get('department', ''))
-    rules.loc[idx, 'issue_type'] = str(data.get('issue_type', ''))
+    rules.loc[idx, 'department'] = str(data.get('department')).strip() if data.get('department') else ''
+    rules.loc[idx, 'issue_type'] = str(data.get('issue_type')).strip() if data.get('issue_type') else ''
     rules.loc[idx, 'outlet'] = str(data.get('outlet')) if data.get('outlet') else None
     
     # Save the priority and the new deadline!

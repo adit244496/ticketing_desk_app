@@ -301,7 +301,7 @@ const SolverDashboard = ({ user, setUser }) => {
 
     const renderTicketTable = (ticketList) => (
         <div className="card" style={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '400px' }}>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
                     <thead style={{ backgroundColor: '#18181b', borderBottom: '2px solid #27272a', position: 'sticky', top: 0 }}>
                         <tr>
@@ -336,7 +336,6 @@ const SolverDashboard = ({ user, setUser }) => {
                                     <td style={{ padding: '10px', fontWeight: 'bold', color: '#fff', border: '1px solid #27272a' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             #{t.ticket_id}
-                                            {t.SLA_Breach && <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '12px', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', fontWeight: 'bold', whiteSpace: 'nowrap' }}>SLA BREACH</span>}
                                         </div>
                                     </td>
                                     <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.timestamp}</td>

@@ -416,7 +416,16 @@ const RequestorDashboard = ({ user, setUser }) => {
                                         <label style={{ fontSize: '10px' }}>Location (Outlet)</label>
                                         <select className="form-control" style={{ padding: '6px 10px', fontSize: '10px', minHeight: '32px' }} required value={location} onChange={(e) => setLocation(e.target.value)}>
                                             <option value="" disabled>Select Location...</option>
-                                            {locations.map(l => <option key={l.outlet} value={l.outlet}>{l.brand} ({l.outlet})</option>)}
+                                            {locations
+                                                .filter(l => {
+                                                    const currentUserDetails = usersList.find(u => u.email === user.email);
+                                                    if (!currentUserDetails || !currentUserDetails.outlet) return false;
+                                                    const assignedStr = String(currentUserDetails.outlet).toLowerCase();
+                                                    if (assignedStr.includes('all')) return true;
+                                                    const assignedLocs = assignedStr.split(',').map(s => s.trim());
+                                                    return assignedLocs.includes(String(l.outlet).toLowerCase()) || assignedLocs.includes(String(l.brand).toLowerCase());
+                                                })
+                                                .map(l => <option key={l.outlet} value={l.outlet}>{l.brand} ({l.outlet})</option>)}
                                         </select>
                                     </div>
                                 </div>
@@ -474,13 +483,14 @@ const RequestorDashboard = ({ user, setUser }) => {
                                 </div>
                                 {/* NEW ENTERPRISE TABLE LAYOUT */}
                                 <div className="card" style={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '400px' }}>
-                                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                                    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
                                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
                                             <thead style={{ backgroundColor: '#18181b', borderBottom: '2px solid #27272a', position: 'sticky', top: 0 }}>
                                                 <tr>
                                                     <th style={{ padding: '10px', textAlign: 'left', color: '#a1a1aa', border: '1px solid #27272a' }}>Ticket ID</th>
                                                     <th style={{ padding: '10px', textAlign: 'center', color: '#a1a1aa', border: '1px solid #27272a' }}>Image</th>
                                                     <th style={{ padding: '10px', textAlign: 'left', color: '#a1a1aa', border: '1px solid #27272a' }}>Department</th>
+                                                    <th style={{ padding: '10px', textAlign: 'left', color: '#a1a1aa', border: '1px solid #27272a' }}>Location</th>
                                                     <th style={{ padding: '10px', textAlign: 'left', color: '#a1a1aa', border: '1px solid #27272a' }}>Issue Type</th>
                                                     <th style={{ padding: '10px', textAlign: 'left', color: '#a1a1aa', border: '1px solid #27272a' }}>Assigned To</th>
                                                     <th style={{ padding: '10px', textAlign: 'center', color: '#a1a1aa', border: '1px solid #27272a' }}>Date Raised</th>
@@ -490,7 +500,7 @@ const RequestorDashboard = ({ user, setUser }) => {
                                             </thead>
                                             <tbody>
                                                 {filteredTickets.length === 0 ? (
-                                                    <tr><td colSpan="8" style={{ padding: '16px', textAlign: 'center', color: '#71717a' }}>No tickets found matching your criteria.</td></tr>
+                                                    <tr><td colSpan="9" style={{ padding: '16px', textAlign: 'center', color: '#71717a' }}>No tickets found matching your criteria.</td></tr>
                                                 ) : (
                                                     filteredTickets.slice().reverse().map(ticket => (
                                                         <tr
@@ -508,7 +518,6 @@ const RequestorDashboard = ({ user, setUser }) => {
                                                             <td style={{ padding: '10px', fontWeight: 'bold', color: '#fff', border: '1px solid #27272a' }}>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                     #{ticket.ticket_id}
-                                                                    {ticket.SLA_Breach && <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '12px', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', fontWeight: 'bold', whiteSpace: 'nowrap' }}>SLA BREACH</span>}
                                                                 </div>
                                                             </td>
                                                             <td style={{ padding: '10px', textAlign: 'center', border: '1px solid #27272a' }}>
@@ -517,6 +526,7 @@ const RequestorDashboard = ({ user, setUser }) => {
                                                                 ) : <span style={{ color: '#52525b' }}>-</span>}
                                                             </td>
                                                             <td style={{ padding: '10px', color: '#a1a1aa', border: '1px solid #27272a' }}>{ticket.dept_assigned}</td>
+                                                            <td style={{ padding: '10px', border: '1px solid #27272a' }}>{ticket.location || 'N/A'}</td>
                                                             <td style={{ padding: '10px', border: '1px solid #27272a' }}>{ticket.issue_type}</td>
                                                             <td style={{ padding: '10px', border: '1px solid #27272a' }}>{getAssigneeDetails(ticket.assigned_to)}</td>
                                                             <td style={{ padding: '10px', textAlign: 'center', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{ticket.timestamp}</td>

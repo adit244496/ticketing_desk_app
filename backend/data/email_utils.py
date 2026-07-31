@@ -6,13 +6,13 @@ from email.mime.base import MIMEBase
 from email import encoders
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'), override=True)
 
 OUTLOOK_EMAIL = os.environ.get('OUTLOOK_EMAIL')
 OUTLOOK_PASSWORD = os.environ.get('OUTLOOK_PASSWORD')
 SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp-mail.outlook.com')
 SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
-FRONTEND_URL = os.environ.get('FRONTEND_URL') or 'https://supportdesk.neotiahospitality.com'
+FRONTEND_URL = 'https://supportdesk.neotiahospitality.com'
 
 def send_ticket_email(to_email, subject, message_body, ticket_details=None, cc_emails=None, attachment_filepath=None):
     if not OUTLOOK_EMAIL or not OUTLOOK_PASSWORD:

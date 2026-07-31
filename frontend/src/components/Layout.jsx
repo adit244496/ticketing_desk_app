@@ -593,7 +593,7 @@ const Layout = ({ children, user, setUser, sidebarTabs, activeTab, setActiveTab 
                             <Calendar size={16} />
                         </button>
 
-                        {user?.role !== 'Audit' && (
+                        {!['admin', 'superadmin', 'audit', 'systemadmin', 'dept.head'].includes(String(user?.role || '').toLowerCase().replace(/\s+/g, '')) && (
                         <div ref={notifRef} style={{ position: 'relative', marginRight: '16px' }}>
                             <button
                                 onClick={() => setShowNotifs(!showNotifs)}

@@ -66,13 +66,36 @@ const DeptHeadDashboard = ({ user, setUser }) => {
             let safeTickets = overviewData.tickets;
             if (typeof safeTickets === 'string') safeTickets = JSON.parse(safeTickets);
             
-            setDeptTickets(Array.isArray(safeTickets) ? safeTickets : []);
-            setPendingApprovals(approvalsData);
-            setDeptSolvers(usersData.filter(u => u.department === user.department && u.role && (String(u.role).toLowerCase() === 'solver' || String(u.role).toLowerCase().includes('head'))));
+            let parsedTickets = Array.isArray(safeTickets) ? safeTickets : [];
+            let filteredApprovals = Array.isArray(approvalsData) ? approvalsData : [];
+            
+            const userDeptTrimmed = user.department ? String(user.department).trim() : '';
+            let filteredRules = Array.isArray(rulesData) ? rulesData.filter(r => String(r.department || '').trim() === userDeptTrimmed) : [];
+
+            const currentUserDetails = usersData.find(u => u.email === user.email);
+            if (currentUserDetails && currentUserDetails.outlet) {
+                const assignedStr = String(currentUserDetails.outlet).toLowerCase();
+                if (!assignedStr.includes('all')) {
+                    const assignedLocs = assignedStr.split(',').map(s => s.trim());
+                    parsedTickets = parsedTickets.filter(t => 
+                        t.location && assignedLocs.includes(String(t.location).toLowerCase())
+                    );
+                    filteredApprovals = filteredApprovals.filter(t => 
+                        t.location && assignedLocs.includes(String(t.location).toLowerCase())
+                    );
+                }
+            } else if (currentUserDetails && !currentUserDetails.outlet) {
+                parsedTickets = [];
+                filteredApprovals = [];
+            }
+            
+            setDeptTickets(parsedTickets);
+            setPendingApprovals(filteredApprovals);
+            setDeptSolvers(usersData.filter(u => String(u.department || '').trim() === userDeptTrimmed && u.role && (String(u.role).toLowerCase() === 'solver' || String(u.role).toLowerCase().includes('head')) && String(u.is_active).toLowerCase() !== 'false'));
             setAllUsers(usersData);
             
             // Strictly filter rules to ONLY show this Dept Head's rules
-            setRulesList(rulesData.filter(r => r.department === user.department));
+            setRulesList(filteredRules);
         } catch (err) {
             setError("Failed to load department data.");
         } finally {
@@ -299,7 +322,7 @@ const DeptHeadDashboard = ({ user, setUser }) => {
             
             {/* ANALYTICS TAB */}
             {activeTab === 'analytics' && !loading && (
-                <DeptAnalytics tickets={deptTickets} />
+                <DeptAnalytics tickets={deptTickets} usersList={allUsers} />
             )}
 
             {/* OVERVIEW TAB */}
@@ -311,12 +334,13 @@ const DeptHeadDashboard = ({ user, setUser }) => {
 
                     <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '400px' }}>
                         <h3 style={{ marginBottom: '12px', fontSize: '14px', flexShrink: 0 }}>Department Workload List</h3>
-                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'left' }}>
                                 <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#18181b', color: '#a1a1aa' }}>
                                     <tr>
                                         <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Ticket ID</th>
                                         <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Issue Type</th>
+                                        <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Location</th>
                                         <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'left', fontWeight: '600' }}>Assigned To</th>
                                         <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'center', fontWeight: '600' }}>Date Raised</th>
                                         <th style={{ borderBottom: '2px solid #27272a', border: '1px solid #27272a', padding: '8px', textAlign: 'center', fontWeight: '600' }}>Deadline</th>
@@ -326,17 +350,17 @@ const DeptHeadDashboard = ({ user, setUser }) => {
                                 </thead>
                                 <tbody>
                                     {filteredOverviewTickets.length === 0 ? (
-                                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '16px', color: '#a1a1aa' }}>No tickets match your filter criteria.</td></tr>
+                                        <tr><td colSpan="8" style={{ textAlign: 'center', padding: '16px', color: '#a1a1aa' }}>No tickets match your filter criteria.</td></tr>
                                     ) : (
                                         filteredOverviewTickets.map(t => (
                                             <tr key={t.ticket_id} onClick={() => handleTicketClick(t)} style={{ borderBottom: '1px solid #27272a', transition: 'background-color 0.2s', cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#18181b'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                                                 <td style={{ fontWeight: 'bold', padding: '8px', border: '1px solid #27272a' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                         #{t.ticket_id}
-                                                        {t.SLA_Breach && <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '12px', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', fontWeight: 'bold', whiteSpace: 'nowrap' }}>SLA BREACH</span>}
                                                     </div>
                                                 </td>
                                                 <td style={{ padding: '8px', border: '1px solid #27272a' }}>{t.issue_type}</td>
+                                                <td style={{ padding: '8px', border: '1px solid #27272a' }}>{t.location || 'N/A'}</td>
                                                 <td style={{ padding: '8px', border: '1px solid #27272a' }}>{t.assigned_to ? getDisplayName(t.assigned_to) : <span style={{color: '#ef4444'}}>Unassigned</span>}</td>
                                                 <td style={{ padding: '8px', textAlign: 'center', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.timestamp}</td>
                                                 <td style={{ padding: '8px', textAlign: 'center', color: '#10b981', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{t.deadline || 'N/A'}</td>
@@ -432,7 +456,6 @@ const DeptHeadDashboard = ({ user, setUser }) => {
                                         <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #27272a' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 #{t.ticket_id}
-                                                {t.SLA_Breach && <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '12px', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', fontWeight: 'bold', whiteSpace: 'nowrap' }}>SLA BREACH</span>}
                                             </div>
                                         </td>
                                         <td style={{ padding: '10px', border: '1px solid #27272a' }}>{t.issue_type}</td>

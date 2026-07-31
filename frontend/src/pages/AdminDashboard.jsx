@@ -126,6 +126,8 @@ const AdminDashboard = ({ user, setUser }) => {
     // --- RATINGS REPORT UI STATE ---
     const [ratingSubTab, setRatingSubTab] = useState('requestor');
     const [ratingSearchQuery, setRatingSearchQuery] = useState('');
+    const [ratingSortField, setRatingSortField] = useState('avgRating');
+    const [ratingSortOrder, setRatingSortOrder] = useState('desc');
 
     const getUserMatch = (assignedToRaw, user) => {
         if (!assignedToRaw || !user) return false;
@@ -214,15 +216,36 @@ const AdminDashboard = ({ user, setUser }) => {
     const filteredRatingList = useMemo(() => {
         const list = ratingSubTab === 'requestor' ? requestorRatingsList : solverRatingsList;
         const q = ratingSearchQuery.toLowerCase().trim();
-        if (!q) return list;
-        return list.filter(u => 
-            String(u.name || '').toLowerCase().includes(q) ||
-            String(u.email || '').toLowerCase().includes(q) ||
-            String(u.employee_id || '').toLowerCase().includes(q) ||
-            String(u.department || '').toLowerCase().includes(q) ||
-            String(u.outlet || '').toLowerCase().includes(q)
-        );
-    }, [ratingSubTab, requestorRatingsList, solverRatingsList, ratingSearchQuery]);
+        let result = list;
+        if (q) {
+            result = list.filter(u => 
+                String(u.name || '').toLowerCase().includes(q) ||
+                String(u.email || '').toLowerCase().includes(q) ||
+                String(u.employee_id || '').toLowerCase().includes(q) ||
+                String(u.department || '').toLowerCase().includes(q) ||
+                String(u.outlet || '').toLowerCase().includes(q)
+            );
+        }
+
+        result = [...result].sort((a, b) => {
+            let valA = a[ratingSortField];
+            let valB = b[ratingSortField];
+            
+            if (ratingSortField === 'avgRating') {
+                valA = Number(valA || 0);
+                valB = Number(valB || 0);
+            } else {
+                valA = String(valA || '').toLowerCase();
+                valB = String(valB || '').toLowerCase();
+            }
+
+            if (valA < valB) return ratingSortOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return ratingSortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        return result;
+    }, [ratingSubTab, requestorRatingsList, solverRatingsList, ratingSearchQuery, ratingSortField, ratingSortOrder]);
 
     useEffect(() => {
         loadSystemData();
@@ -668,7 +691,7 @@ const AdminDashboard = ({ user, setUser }) => {
                 </div>
 
                 {/* TAB CONTENT VIEWS */}
-                {activeTab === 'analytics' && !loading && <AdminAnalytics tickets={ticketsList} />}
+                {activeTab === 'analytics' && !loading && <AdminAnalytics tickets={ticketsList} usersList={usersList} />}
 
                 {activeTab === 'ageing' && !loading && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -714,13 +737,14 @@ const AdminDashboard = ({ user, setUser }) => {
 
                         <div className="card">
                             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>⏳ Full Ticket Ageing Analytics</h3>
-                            <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
+                            <div style={{ maxHeight: '480px', overflowY: 'auto', overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
                                 <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
                                     <tr>
                                         <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>ID</th>
                                         <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Image</th>
                                         <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Dept</th>
+                                        <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Location</th>
                                         <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Status</th>
                                         <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Assigned To</th>
                                         <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #27272a', border: '1px solid #27272a' }}>Date Raised</th>
@@ -733,7 +757,7 @@ const AdminDashboard = ({ user, setUser }) => {
                                 </thead>
                                 <tbody>
                                     {filteredAgeing.length === 0 ? (
-                                        <tr><td colSpan="11" style={{ textAlign: 'center', padding: '16px', color: '#71717a' }}>No records found.</td></tr>
+                                        <tr><td colSpan="12" style={{ textAlign: 'center', padding: '16px', color: '#71717a' }}>No records found.</td></tr>
                                     ) : (
                                         filteredAgeing.map(a => (
                                             <tr key={a.ticket_id} onClick={() => handleTicketClick(a)} style={{ borderBottom: '1px solid #27272a', transition: 'background-color 0.2s', cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#18181b'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
@@ -744,6 +768,7 @@ const AdminDashboard = ({ user, setUser }) => {
                                                     ) : <span style={{ color: '#52525b' }}>-</span>}
                                                 </td>
                                                 <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.dept_assigned}</td>
+                                                <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.location || 'N/A'}</td>
                                                 <td style={{ padding: '8px', border: '1px solid #27272a' }}>{a.status}</td>
                                                 <td style={{ padding: '8px', color: '#60a5fa', border: '1px solid #27272a' }}>{formatSolverDetails(a.assigned_to)}</td>
                                                 <td style={{ padding: '8px', color: '#a1a1aa', border: '1px solid #27272a', whiteSpace: 'nowrap' }}>{a.timestamp}</td>
@@ -801,16 +826,33 @@ const AdminDashboard = ({ user, setUser }) => {
                                         <ShieldCheck size={13} /> Solvers ({solverRatingsList.length})
                                     </button>
                                 </div>
-                                <div style={{ position: 'relative' }}>
-                                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
-                                    <input 
-                                        type="text" 
-                                        className="form-control" 
-                                        placeholder={`Search ${ratingSubTab === 'requestor' ? 'requestors' : 'solvers'}...`} 
-                                        value={ratingSearchQuery} 
-                                        onChange={(e) => setRatingSearchQuery(e.target.value)} 
-                                        style={{ padding: '6px 10px 6px 30px', fontSize: '10px', width: '220px', margin: 0 }} 
-                                    />
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <div style={{ position: 'relative' }}>
+                                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
+                                        <input 
+                                            type="text" 
+                                            className="form-control" 
+                                            placeholder={`Search ${ratingSubTab === 'requestor' ? 'requestors' : 'solvers'}...`} 
+                                            value={ratingSearchQuery} 
+                                            onChange={(e) => setRatingSearchQuery(e.target.value)} 
+                                            style={{ padding: '6px 10px 6px 30px', fontSize: '10px', width: '220px', margin: 0 }} 
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span style={{ fontSize: '10px', color: '#a1a1aa' }}>Sort By:</span>
+                                        <select className="form-control" value={ratingSortField} onChange={e => setRatingSortField(e.target.value)} style={{ fontSize: '10px', padding: '6px', width: '120px' }}>
+                                            <option value="employee_id">Emp ID</option>
+                                            <option value="name">Name</option>
+                                            <option value="email">Email</option>
+                                            <option value="department">Department</option>
+                                            <option value="outlet">Outlet</option>
+                                            <option value="avgRating">Average Rating</option>
+                                        </select>
+                                        <select className="form-control" value={ratingSortOrder} onChange={e => setRatingSortOrder(e.target.value)} style={{ fontSize: '10px', padding: '6px', width: '70px' }}>
+                                            <option value="desc">Desc</option>
+                                            <option value="asc">Asc</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
