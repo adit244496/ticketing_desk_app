@@ -43,7 +43,7 @@ def background_tasks():
             
             # Send Daily Excel Notifications based on configured time
             # SET YOUR PREFERRED TIME HERE (24-hour HH:MM format)
-            daily_time = "17:21" 
+            daily_time = "09:00" 
             if daily_time:
                 now = database.get_ist_now()
                 current_time = now.strftime("%H:%M")
