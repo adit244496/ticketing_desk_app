@@ -630,7 +630,7 @@ const DeptHeadDashboard = ({ user, setUser }) => {
                                     <div style={{ display: 'flex', gap: '20px', alignItems: 'stretch' }}>
                                         <div style={{ flex: 1, minWidth: 0, border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', backgroundColor: 'var(--bg-card)' }}>
                                             <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: 'var(--text-main)' }}>Issue Description:</strong>
-                                            <div style={{ color: 'var(--text-main)', whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto', paddingRight: '4px', fontSize: '13px', lineHeight: '1.6' }}>{selectedTicket.description}</div>
+                                            <div style={{ color: 'var(--text-main)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', paddingRight: '4px', fontSize: '13px', lineHeight: '1.6' }}>{selectedTicket.description}</div>
                                         </div>
                                         {selectedTicket.attachment && String(selectedTicket.attachment).toLowerCase() !== 'nan' && (
                                             <div style={{ width: '100px', flexShrink: 0 }}>
